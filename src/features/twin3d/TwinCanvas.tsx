@@ -65,7 +65,7 @@ export const TwinCanvas: React.FC<TwinCanvasProps> = ({ floors }) => {
         <Suspense fallback={null}>
           <Building3D floors={floors} />
           <ContactShadows
-            position={[0, -12.4, 0]}
+            position={[0, -12.38, 0]}
             opacity={0.45}
             scale={130}
             blur={2.2}
