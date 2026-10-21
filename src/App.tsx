@@ -62,7 +62,7 @@ export function App() {
         <section className="w-3/4 h-full relative rounded-3xl bg-white shadow-xl border border-slate-200/90 overflow-hidden flex flex-col">
           {/* Visual Canvas (2D / 3D) */}
           <div className="w-full h-full relative overflow-hidden">
-            {is2D || mode === "floor" ? (
+            {is2D ? (
               <FloorPlan2D floor={currentFloor} />
             ) : (
               <TwinCanvas floors={floors} />

@@ -12,6 +12,10 @@ interface ViewStoreState {
   isKiosk: boolean;
   cameraAzimuth: number; // Sudut putar kamera dalam radian (untuk kompas 3D)
   isSidebarExpanded: boolean;
+  isCutaway: boolean; // Potongan atap / eksplorasi interior gedung 3D
+  hoveredFloor: number | null;
+  hoveredSlotId: string | null;
+  resetCameraTrigger: number;
   activeModal: "settings" | "account" | "automations" | null;
 
   // Actions
@@ -21,6 +25,11 @@ interface ViewStoreState {
   selectRoom: (slotId: string | null) => void;
   setLayer: (layer: VisualizationLayer) => void;
   toggle2D: () => void;
+  toggleCutaway: () => void;
+  setCutaway: (cutaway: boolean) => void;
+  setHoveredFloor: (floor: number | null) => void;
+  setHoveredSlotId: (slotId: string | null) => void;
+  triggerResetCamera: () => void;
   setKiosk: (kiosk: boolean) => void;
   resetToBuilding: () => void;
   toggleSidebar: () => void;
@@ -37,6 +46,10 @@ export const useViewStore = create<ViewStoreState>((set) => ({
   isKiosk: false,
   cameraAzimuth: 0,
   isSidebarExpanded: false,
+  isCutaway: false,
+  hoveredFloor: null,
+  hoveredSlotId: null,
+  resetCameraTrigger: 0,
   activeModal: null,
 
   setMode: (mode) => set({ mode }),
@@ -53,6 +66,11 @@ export const useViewStore = create<ViewStoreState>((set) => ({
     }),
   setLayer: (layer) => set({ layer }),
   toggle2D: () => set((state) => ({ is2D: !state.is2D })),
+  toggleCutaway: () => set((state) => ({ isCutaway: !state.isCutaway })),
+  setCutaway: (isCutaway) => set({ isCutaway }),
+  setHoveredFloor: (hoveredFloor) => set({ hoveredFloor }),
+  setHoveredSlotId: (hoveredSlotId) => set({ hoveredSlotId }),
+  triggerResetCamera: () => set((state) => ({ resetCameraTrigger: state.resetCameraTrigger + 1 })),
   setKiosk: (isKiosk) => set({ isKiosk }),
   resetToBuilding: () =>
     set({

@@ -1,0 +1,624 @@
+import React, { useMemo } from "react";
+import * as THREE from "three";
+import { Html } from "@react-three/drei";
+import { Activity, Flame, Sparkles, User, Zap } from "lucide-react";
+import { FloorModel, RoomGeometry } from "../../building/params";
+import { deriveRoomStatus, RoomClimateStatus } from "../../domain/roomStatus";
+import { useRoomStore } from "../../stores/roomStore";
+import { useViewStore } from "../../stores/viewStore";
+import { getStatusColor } from "../plan2d/FloorPlan2D";
+import { FST_COLORS } from "./FstBuildingExterior";
+
+interface Floor3DCutawayProps {
+  floor: FloorModel;
+  onRoomSelect: (slotId: string) => void;
+}
+
+export const Floor3DCutaway: React.FC<Floor3DCutawayProps> = ({ floor, onRoomSelect }) => {
+  const { selectedSlotId, hoveredSlotId, setHoveredSlotId, layer } = useViewStore();
+  const { rooms: liveRooms } = useRoomStore();
+  const now = new Date();
+
+  return (
+    <group position={[0, 0, 0]}>
+      {/* 1. Pelat Dasar Lantai dengan Lubang Void Atrium */}
+      <FloorCutawayBase floor={floor} />
+
+      {/* 2. Dinding Perimeter Rendah (Cutaway Style ~1.2m) Bertema FST (Krem + Pilaster Coral) */}
+      <CutawayPerimeterWalls />
+
+      {/* 3. Selasar Koridor Void Melingkar dengan Tanaman Gantung */}
+      <AtriumCutawayBalcony />
+
+      {/* 4. Menara Tangga Imperial & 2 Lift Melengkung di Sisi Void */}
+      <CutawayCoreStairsAndLifts level={floor.level} />
+
+      {/* 5. Saintek Hub Lounge di Tengah Lantai (Foto Lounge Asli FST) */}
+      <SaintekHubLounge level={floor.level} />
+
+      {/* 6. Ruang Teater Amphitheater Berundak di Sudut Timur (Foto Teater Asli FST) */}
+      <TheaterAmphitheaterSeating level={floor.level} />
+
+      {/* 7. Seluruh Ruangan Interaktif (Warna Heatmap / Status IoT & Furnitur Simbolis) */}
+      {floor.rooms.map((room) => {
+        const live = liveRooms[room.slotId];
+        const status: RoomClimateStatus = live
+          ? deriveRoomStatus(live, now)
+          : room.hasDevice
+          ? "OCCUPIED"
+          : "NO_DEVICE";
+
+        const color = getStatusColor(status, layer, live?.temperature ?? null);
+        const isSelected = selectedSlotId === room.slotId;
+        const isHovered = hoveredSlotId === room.slotId;
+
+        const temp = live?.temperature ?? (room.hasDevice ? 23.8 : 25.5);
+        const humidity = live?.humidity ?? (room.hasDevice ? 58 : 62);
+        const presence = live?.presence ?? (room.hasDevice ? true : false);
+        const acMode = live?.acMode ?? (room.hasDevice ? "COOL" : null);
+
+        return (
+          <InteractiveRoomBox
+            key={room.slotId}
+            room={room}
+            color={color}
+            status={status}
+            temp={temp}
+            humidity={humidity}
+            presence={presence}
+            acMode={acMode}
+            isSelected={isSelected}
+            isHovered={isHovered}
+            onClick={() => onRoomSelect(room.slotId)}
+            onPointerOver={() => setHoveredSlotId(room.slotId)}
+            onPointerOut={() => setHoveredSlotId(null)}
+          />
+        );
+      })}
+    </group>
+  );
+};
+
+// =========================================================================
+// 1. Pelat Lantai Dasar dengan Void Atrium
+// =========================================================================
+function FloorCutawayBase({ floor }: { floor: FloorModel }) {
+  const shape = useMemo(() => {
+    const s = new THREE.Shape();
+    const [first, ...rest] = floor.outerPolygon;
+    s.moveTo(first[0], -first[1]);
+    rest.forEach(([x, y]) => s.lineTo(x, -y));
+    s.closePath();
+
+    const hole = new THREE.Path();
+    const [hFirst, ...hRest] = floor.voidPolygon;
+    hole.moveTo(hFirst[0], -hFirst[1]);
+    hRest.forEach(([x, y]) => hole.lineTo(x, -y));
+    hole.closePath();
+    s.holes.push(hole);
+
+    return s;
+  }, [floor]);
+
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]} receiveShadow>
+      <extrudeGeometry
+        args={[
+          shape,
+          { depth: 0.4, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05 },
+        ]}
+      />
+      <meshStandardMaterial color="#F8FAFC" roughness={0.85} />
+    </mesh>
+  );
+}
+
+// =========================================================================
+// 2. Dinding Perimeter Luar Rendah (~1.2m Cutaway) Khas FST
+// Menampilkan identitas krem + pilaster coral red tanpa menghalangi pandangan ke dalam ruang
+// =========================================================================
+function CutawayPerimeterWalls() {
+  const wallH = 1.35;
+  const halfW = 31.9;
+  const halfD = 27.9;
+
+  return (
+    <group>
+      {/* Dinding Rendah Utara & Selatan */}
+      <mesh position={[0, wallH / 2, halfD]} castShadow receiveShadow>
+        <boxGeometry args={[63.8, wallH, 0.35]} />
+        <meshStandardMaterial color={FST_COLORS.creamWall} roughness={0.8} />
+      </mesh>
+      <mesh position={[0, wallH / 2, -halfD]} castShadow receiveShadow>
+        <boxGeometry args={[63.8, wallH, 0.35]} />
+        <meshStandardMaterial color={FST_COLORS.creamWall} roughness={0.8} />
+      </mesh>
+
+      {/* Dinding Rendah Timur & Barat */}
+      <mesh position={[halfW, wallH / 2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.35, wallH, 55.8]} />
+        <meshStandardMaterial color={FST_COLORS.creamWall} roughness={0.8} />
+      </mesh>
+      <mesh position={[-halfW, wallH / 2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.35, wallH, 55.8]} />
+        <meshStandardMaterial color={FST_COLORS.creamWall} roughness={0.8} />
+      </mesh>
+
+      {/* Lis Penutup Atas Coral-Red Khas FST */}
+      <mesh position={[0, wallH + 0.04, halfD]}>
+        <boxGeometry args={[64.0, 0.08, 0.45]} />
+        <meshStandardMaterial color={FST_COLORS.coralRed} roughness={0.7} />
+      </mesh>
+      <mesh position={[0, wallH + 0.04, -halfD]}>
+        <boxGeometry args={[64.0, 0.08, 0.45]} />
+        <meshStandardMaterial color={FST_COLORS.coralRed} roughness={0.7} />
+      </mesh>
+      <mesh position={[halfW, wallH + 0.04, 0]}>
+        <boxGeometry args={[0.45, 0.08, 56.0]} />
+        <meshStandardMaterial color={FST_COLORS.coralRed} roughness={0.7} />
+      </mesh>
+      <mesh position={[-halfW, wallH + 0.04, 0]}>
+        <boxGeometry args={[0.45, 0.08, 56.0]} />
+        <meshStandardMaterial color={FST_COLORS.coralRed} roughness={0.7} />
+      </mesh>
+    </group>
+  );
+}
+
+// =========================================================================
+// 3. Selasar Koridor Void Melingkar dengan Tanaman Gantung
+// =========================================================================
+function AtriumCutawayBalcony() {
+  const parapetH = 1.15;
+  const voidHalfW = 21.0;
+  const voidHalfD = 17.0;
+
+  return (
+    <group>
+      {/* Dinding Pembatas Void */}
+      <mesh position={[0, parapetH / 2, voidHalfD]} castShadow receiveShadow>
+        <boxGeometry args={[voidHalfW * 2, parapetH, 0.18]} />
+        <meshStandardMaterial color={FST_COLORS.creamWall} roughness={0.8} />
+      </mesh>
+      <mesh position={[0, parapetH / 2, -voidHalfD]} castShadow receiveShadow>
+        <boxGeometry args={[voidHalfW * 2, parapetH, 0.18]} />
+        <meshStandardMaterial color={FST_COLORS.creamWall} roughness={0.8} />
+      </mesh>
+      <mesh position={[voidHalfW, parapetH / 2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.18, parapetH, voidHalfD * 2]} />
+        <meshStandardMaterial color={FST_COLORS.creamWall} roughness={0.8} />
+      </mesh>
+      <mesh position={[-voidHalfW, parapetH / 2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.18, parapetH, voidHalfD * 2]} />
+        <meshStandardMaterial color={FST_COLORS.creamWall} roughness={0.8} />
+      </mesh>
+
+      {/* Lis Merah & Tanaman Gantung */}
+      <mesh position={[0, parapetH + 0.04, voidHalfD]}>
+        <boxGeometry args={[voidHalfW * 2 + 0.2, 0.08, 0.25]} />
+        <meshStandardMaterial color={FST_COLORS.coralRed} roughness={0.7} />
+      </mesh>
+      <mesh position={[0, parapetH + 0.04, -voidHalfD]}>
+        <boxGeometry args={[voidHalfW * 2 + 0.2, 0.08, 0.25]} />
+        <meshStandardMaterial color={FST_COLORS.coralRed} roughness={0.7} />
+      </mesh>
+
+      {/* Tanaman Hijau di Lis */}
+      <mesh position={[0, parapetH + 0.1, voidHalfD - 0.1]}>
+        <boxGeometry args={[voidHalfW * 1.8, 0.2, 0.22]} />
+        <meshStandardMaterial color={FST_COLORS.foliageGreen} roughness={0.6} />
+      </mesh>
+      <mesh position={[0, parapetH + 0.1, -voidHalfD + 0.1]}>
+        <boxGeometry args={[voidHalfW * 1.8, 0.2, 0.22]} />
+        <meshStandardMaterial color={FST_COLORS.foliageGreen} roughness={0.6} />
+      </mesh>
+    </group>
+  );
+}
+
+// =========================================================================
+// 4. Tangga Imperial & 2 Lift Melengkung di Sisi Void
+// Berdasarkan Spesifikasi: Tangga besar naik, bercabang 2 ke kiri-kanan, diapit 2 lift
+// =========================================================================
+function CutawayCoreStairsAndLifts({ level }: { level: number }) {
+  return (
+    <group>
+      {/* Core Utara: Tangga Imperial & 2 Lift */}
+      <group position={[0, 0, 21.0]}>
+        {/* Bordes Tangga Imperial Tengah */}
+        <mesh position={[0, 0.35, 2.5]} castShadow>
+          <boxGeometry args={[4.2, 0.7, 3.2]} />
+          <meshStandardMaterial color="#E2E8F0" roughness={0.7} />
+        </mesh>
+        {/* Cabang Tangga Kiri & Kanan */}
+        <mesh position={[-2.8, 0.65, 3.6]} rotation={[0.2, 0, 0]} castShadow>
+          <boxGeometry args={[1.5, 0.35, 2.6]} />
+          <meshStandardMaterial color="#CBD5E1" roughness={0.7} />
+        </mesh>
+        <mesh position={[2.8, 0.65, 3.6]} rotation={[0.2, 0, 0]} castShadow>
+          <boxGeometry args={[1.5, 0.35, 2.6]} />
+          <meshStandardMaterial color="#CBD5E1" roughness={0.7} />
+        </mesh>
+
+        {/* 2 Pintu Lift Bersebelahan */}
+        <mesh position={[-4.5, 1.1, 4.8]} castShadow>
+          <boxGeometry args={[1.8, 2.2, 0.15]} />
+          <meshStandardMaterial color="#64748B" metalness={0.7} roughness={0.3} />
+        </mesh>
+        <mesh position={[4.5, 1.1, 4.8]} castShadow>
+          <boxGeometry args={[1.8, 2.2, 0.15]} />
+          <meshStandardMaterial color="#64748B" metalness={0.7} roughness={0.3} />
+        </mesh>
+
+        {/* Label 3D Core */}
+        <Html position={[0, 2.2, 2.5]} center distanceFactor={45}>
+          <div className="pointer-events-none px-2 py-0.5 rounded-md bg-slate-900/80 backdrop-blur-sm text-[10px] font-bold text-white shadow-md border border-slate-700 whitespace-nowrap">
+            {level === 1 ? "Lobby Sarjana & Tangga Utama" : "Tangga Imperial & 2 Lift (Utara)"}
+          </div>
+        </Html>
+      </group>
+
+      {/* Core Selatan: Tangga Imperial & 2 Lift */}
+      <group position={[0, 0, -21.0]}>
+        <mesh position={[0, 0.35, -2.5]} castShadow>
+          <boxGeometry args={[4.2, 0.7, 3.2]} />
+          <meshStandardMaterial color="#E2E8F0" roughness={0.7} />
+        </mesh>
+        <mesh position={[-2.8, 0.65, -3.6]} rotation={[-0.2, 0, 0]} castShadow>
+          <boxGeometry args={[1.5, 0.35, 2.6]} />
+          <meshStandardMaterial color="#CBD5E1" roughness={0.7} />
+        </mesh>
+        <mesh position={[2.8, 0.65, -3.6]} rotation={[-0.2, 0, 0]} castShadow>
+          <boxGeometry args={[1.5, 0.35, 2.6]} />
+          <meshStandardMaterial color="#CBD5E1" roughness={0.7} />
+        </mesh>
+
+        <mesh position={[-4.5, 1.1, -4.8]} castShadow>
+          <boxGeometry args={[1.8, 2.2, 0.15]} />
+          <meshStandardMaterial color="#64748B" metalness={0.7} roughness={0.3} />
+        </mesh>
+        <mesh position={[4.5, 1.1, -4.8]} castShadow>
+          <boxGeometry args={[1.8, 2.2, 0.15]} />
+          <meshStandardMaterial color="#64748B" metalness={0.7} roughness={0.3} />
+        </mesh>
+
+        <Html position={[0, 2.2, -2.5]} center distanceFactor={45}>
+          <div className="pointer-events-none px-2 py-0.5 rounded-md bg-slate-900/80 backdrop-blur-sm text-[10px] font-bold text-white shadow-md border border-slate-700 whitespace-nowrap">
+            {level === 1 ? "Lobby Pascasarjana & Tangga" : "Tangga Imperial & 2 Lift (Selatan)"}
+          </div>
+        </Html>
+      </group>
+    </group>
+  );
+}
+
+// =========================================================================
+// 5. Saintek Hub Lounge di Tengah Lantai
+// Sesuai Foto Asli (lobby-lounge-area-in-the-middle-of-every-floor.png):
+// Kisi-kisi kayu kanopi, dinding bata ekspos, meja komunal & tanaman lidah mertua
+// =========================================================================
+function SaintekHubLounge({ level }: { level: number }) {
+  if (level === 1) return null; // Lantai 1 adalah area lobby & void taman
+
+  return (
+    <group position={[0, 0, 0]}>
+      {/* Area Lantai Lounge Bertekstur Kayu Hangat di Sisi Selasar */}
+      <mesh position={[0, 0.02, 18.2]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[11.5, 3.8]} />
+        <meshStandardMaterial color="#D97706" roughness={0.5} />
+      </mesh>
+
+      {/* Dinding Fitur Bata Merah Terakota (Foto Asli) */}
+      <mesh position={[0, 1.2, 20.0]} castShadow>
+        <boxGeometry args={[11.2, 2.2, 0.2]} />
+        <meshStandardMaterial color={FST_COLORS.roofTile} roughness={0.8} />
+      </mesh>
+
+      {/* Kisi-kisi Balok Kayu Plafon (Wooden Slat Pergola Trellis - Foto Asli) */}
+      {[0.4, 0.9, 1.4, 1.9, 2.4].map((z, i) => (
+        <mesh key={i} position={[0, 2.4, 17.2 + z]}>
+          <boxGeometry args={[10.5, 0.12, 0.18]} />
+          <meshStandardMaterial color="#B45309" roughness={0.5} />
+        </mesh>
+      ))}
+
+      {/* Meja Komunal & Bangku Kayu Belajar Mahasiswa (Foto Asli) */}
+      {[-3.0, 3.0].map((x, i) => (
+        <group key={i} position={[x, 0, 18.4]}>
+          <mesh position={[0, 0.45, 0]} castShadow>
+            <boxGeometry args={[2.2, 0.1, 1.1]} />
+            <meshStandardMaterial color="#78350F" roughness={0.6} />
+          </mesh>
+          {/* Bangku Kiri & Kanan */}
+          <mesh position={[0, 0.25, -0.75]} castShadow>
+            <boxGeometry args={[2.0, 0.08, 0.35]} />
+            <meshStandardMaterial color="#451A03" roughness={0.6} />
+          </mesh>
+          <mesh position={[0, 0.25, 0.75]} castShadow>
+            <boxGeometry args={[2.0, 0.08, 0.35]} />
+            <meshStandardMaterial color="#451A03" roughness={0.6} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* Pot Semen dengan Tanaman Sansevieria (Lidah Mertua - Foto Asli) */}
+      {[-5.0, 0, 5.0].map((x, i) => (
+        <group key={i} position={[x, 0, 16.8]}>
+          <mesh position={[0, 0.2, 0]} castShadow>
+            <boxGeometry args={[1.5, 0.4, 0.35]} />
+            <meshStandardMaterial color="#94A3B8" roughness={0.7} />
+          </mesh>
+          <mesh position={[0, 0.65, 0]}>
+            <boxGeometry args={[1.3, 0.6, 0.25]} />
+            <meshStandardMaterial color="#15803D" roughness={0.4} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* Label 3D Saintek Hub */}
+      <Html position={[0, 2.8, 18.2]} center distanceFactor={42}>
+        <div className="pointer-events-none px-2.5 py-1 rounded-full bg-amber-600/90 backdrop-blur-md text-white text-[11px] font-black shadow-lg border border-amber-400/80 flex items-center gap-1.5 whitespace-nowrap">
+          <Sparkles className="w-3 h-3 text-amber-200" />
+          <span>Saintek Hub Lounge Lt.{level}</span>
+        </div>
+      </Html>
+    </group>
+  );
+}
+
+// =========================================================================
+// 6. Ruang Teater Amphitheater Berundak di Sudut Timur (NE & SE)
+// Sesuai Foto Asli (teater-room-in-corner-every-floor.png):
+// Tempat duduk oranye-emas berundak menurun ke arah panggung & dinding biru
+// =========================================================================
+function TheaterAmphitheaterSeating({ level: _level }: { level: number }) {
+  return (
+    <group>
+      {/* Teater 1 (Pojok Timur Laut - NE) */}
+      <group position={[28.0, 0, 24.0]}>
+        {/* Dinding Biru Akustik (Foto Asli) */}
+        <mesh position={[0, 1.2, 4.4]}>
+          <boxGeometry args={[8.8, 2.2, 0.15]} />
+          <meshStandardMaterial color="#1D4ED8" roughness={0.6} />
+        </mesh>
+
+        {/* Layar Proyektor Putih Besar */}
+        <mesh position={[0, 1.4, 4.3]}>
+          <boxGeometry args={[5.2, 1.6, 0.05]} />
+          <meshStandardMaterial color="#FFFFFF" roughness={0.3} />
+        </mesh>
+
+        {/* Panggung Kayu di Depan Layar */}
+        <mesh position={[0, 0.2, 3.2]} castShadow>
+          <boxGeometry args={[6.8, 0.35, 1.8]} />
+          <meshStandardMaterial color="#B45309" roughness={0.6} />
+        </mesh>
+
+        {/* 3 Tingkat Tempat Duduk Berundak Oranye (Foto Asli) */}
+        {[0, 1, 2].map((step) => {
+          const z = 1.2 - step * 1.6;
+          const y = 0.2 + step * 0.32;
+          return (
+            <group key={step} position={[0, y, z]}>
+              <mesh castShadow receiveShadow>
+                <boxGeometry args={[7.2, 0.3, 1.2]} />
+                <meshStandardMaterial color="#D97706" roughness={0.5} />
+              </mesh>
+            </group>
+          );
+        })}
+      </group>
+
+      {/* Teater 2 (Pojok Tenggara - SE) */}
+      <group position={[28.0, 0, -24.0]}>
+        <mesh position={[0, 1.2, -4.4]}>
+          <boxGeometry args={[8.8, 2.2, 0.15]} />
+          <meshStandardMaterial color="#1D4ED8" roughness={0.6} />
+        </mesh>
+        <mesh position={[0, 1.4, -4.3]}>
+          <boxGeometry args={[5.2, 1.6, 0.05]} />
+          <meshStandardMaterial color="#FFFFFF" roughness={0.3} />
+        </mesh>
+        <mesh position={[0, 0.2, -3.2]} castShadow>
+          <boxGeometry args={[6.8, 0.35, 1.8]} />
+          <meshStandardMaterial color="#B45309" roughness={0.6} />
+        </mesh>
+
+        {[0, 1, 2].map((step) => {
+          const z = -1.2 + step * 1.6;
+          const y = 0.2 + step * 0.32;
+          return (
+            <group key={step} position={[0, y, z]}>
+              <mesh castShadow receiveShadow>
+                <boxGeometry args={[7.2, 0.3, 1.2]} />
+                <meshStandardMaterial color="#D97706" roughness={0.5} />
+              </mesh>
+            </group>
+          );
+        })}
+      </group>
+    </group>
+  );
+}
+
+// =========================================================================
+// 7. Kotak Ruangan Interaktif (Lantai Berwarna Heatmap, Dinding Partisi,
+// Badge 3D, Indikator Pilot R.601, & Tooltip Sensor Live)
+// =========================================================================
+function InteractiveRoomBox({
+  room,
+  color,
+  status,
+  temp,
+  humidity,
+  presence,
+  acMode,
+  isSelected,
+  isHovered,
+  onClick,
+  onPointerOver,
+  onPointerOut,
+}: {
+  room: RoomGeometry;
+  color: string;
+  status: RoomClimateStatus;
+  temp: number;
+  humidity: number;
+  presence: boolean;
+  acMode: string | null;
+  isSelected: boolean;
+  isHovered: boolean;
+  onClick: () => void;
+  onPointerOver: () => void;
+  onPointerOut: () => void;
+}) {
+  const wallH = 1.15;
+  const isPilot = room.hasDevice;
+
+  return (
+    <group position={[room.center[0], 0, -room.center[1]]}>
+      {/* Lantai Ruang (Interaktif, Menampilkan Warna Status AC / Heatmap) */}
+      <mesh
+        position={[0, 0.06, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        receiveShadow
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick();
+        }}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          onPointerOver();
+        }}
+        onPointerOut={onPointerOut}
+      >
+        <planeGeometry args={[room.size[0] * 0.94, room.size[1] * 0.94]} />
+        <meshStandardMaterial
+          color={color}
+          roughness={0.4}
+          emissive={isSelected ? "#2563EB" : isHovered ? "#60A5FA" : color}
+          emissiveIntensity={isSelected ? 0.45 : isHovered ? 0.3 : 0.06}
+        />
+      </mesh>
+
+      {/* Dinding Partisi Pembatas Ruang (Tembok Putih Halus) */}
+      <mesh position={[-room.size[0] * 0.47, wallH / 2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.18, wallH, room.size[1] * 0.92]} />
+        <meshStandardMaterial color="#FFFFFF" roughness={0.8} />
+      </mesh>
+      <mesh position={[room.size[0] * 0.47, wallH / 2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.18, wallH, room.size[1] * 0.92]} />
+        <meshStandardMaterial color="#FFFFFF" roughness={0.8} />
+      </mesh>
+
+      {/* Furnitur Simbolis di Dalam Ruang Kelas / Lab */}
+      {room.kind === "classroom" && (
+        <group position={[0, 0, 0]}>
+          {/* Meja Dosen & Podium */}
+          <mesh position={[0, 0.35, -room.size[1] * 0.28]} castShadow>
+            <boxGeometry args={[1.8, 0.35, 0.8]} />
+            <meshStandardMaterial color="#64748B" roughness={0.7} />
+          </mesh>
+          {/* Deretan Meja Mahasiswa */}
+          <mesh position={[0, 0.28, room.size[1] * 0.15]} castShadow>
+            <boxGeometry args={[room.size[0] * 0.65, 0.25, 1.2]} />
+            <meshStandardMaterial color="#94A3B8" roughness={0.7} />
+          </mesh>
+        </group>
+      )}
+
+      {/* Ruang Pilot Uji Coba: R.601 (Glowing Cyan Beacon & Pulsing Ring) */}
+      {isPilot && (
+        <group position={[0, 0.08, 0]}>
+          {/* Cincin Emissive Berpendar */}
+          <mesh rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[1.4, 1.8, 32]} />
+            <meshBasicMaterial color="#10B981" transparent opacity={0.85} side={THREE.DoubleSide} />
+          </mesh>
+          <mesh rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[2.2, 2.45, 32]} />
+            <meshBasicMaterial color="#34D399" transparent opacity={0.4} side={THREE.DoubleSide} />
+          </mesh>
+
+          {/* Floating Telemetry Pill Khusus Pilot */}
+          <Html position={[0, 2.3, 0]} center distanceFactor={40}>
+            <div className="pointer-events-none px-3 py-1.5 rounded-2xl bg-emerald-600/95 backdrop-blur-md text-white shadow-2xl border-2 border-white flex items-center gap-2 whitespace-nowrap animate-bounce">
+              <Sparkles className="w-4 h-4 text-emerald-200" />
+              <div className="flex flex-col text-left">
+                <span className="text-[10px] uppercase font-black tracking-wider text-emerald-200">
+                  PILOT RUANG 601
+                </span>
+                <span className="text-xs font-black">
+                  {temp.toFixed(1)}°C • {status} • {acMode ?? "AUTO"}
+                </span>
+              </div>
+            </div>
+          </Html>
+        </group>
+      )}
+
+      {/* Label 3D Teks Nama Ruang (Kecil, Rapi, & Selalu Terbaca) */}
+      {!isPilot && (
+        <Html position={[0, 0.8, 0]} center distanceFactor={50}>
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              onClick();
+            }}
+            className={`px-2 py-0.5 rounded-full text-[10px] font-bold shadow-sm transition-transform cursor-pointer select-none whitespace-nowrap ${
+              isSelected
+                ? "bg-blue-600 text-white scale-110 shadow-md ring-2 ring-white"
+                : isHovered
+                ? "bg-slate-900 text-white scale-105"
+                : "bg-white/90 text-slate-800 border border-slate-200/80"
+            }`}
+          >
+            {room.displayName.replace("Ruang ", "R.")}
+          </div>
+        </Html>
+      )}
+
+      {/* Floating Tooltip Sensor Saat Cursor Hover di Atas Ruangan */}
+      {isHovered && !isPilot && (
+        <Html position={[0, 2.0, 0]} center distanceFactor={42}>
+          <div className="pointer-events-none p-2.5 rounded-2xl bg-slate-900/95 backdrop-blur-md text-white shadow-2xl border border-slate-700/80 w-44 flex flex-col gap-1.5 z-50">
+            <div className="flex items-center justify-between border-b border-slate-700/80 pb-1">
+              <span className="text-xs font-black text-slate-100 truncate">
+                {room.displayName}
+              </span>
+              <span
+                className="text-[9px] font-bold px-1.5 py-0.5 rounded-full text-white"
+                style={{ backgroundColor: color }}
+              >
+                {status}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-1 text-[10px]">
+              <div className="flex items-center gap-1 text-slate-300">
+                <Flame className="w-3 h-3 text-amber-400" />
+                <span>{temp.toFixed(1)}°C</span>
+              </div>
+              <div className="flex items-center gap-1 text-slate-300">
+                <Activity className="w-3 h-3 text-blue-400" />
+                <span>{humidity}% RH</span>
+              </div>
+              <div className="flex items-center gap-1 text-slate-300">
+                <User className="w-3 h-3 text-emerald-400" />
+                <span>{presence ? "Ada Orang" : "Kosong"}</span>
+              </div>
+              <div className="flex items-center gap-1 text-slate-300">
+                <Zap className="w-3 h-3 text-amber-300" />
+                <span>AC: {acMode ?? "OFF"}</span>
+              </div>
+            </div>
+
+            <div className="text-[9px] text-blue-300 font-semibold text-center pt-0.5">
+              Klik untuk inspeksi ruangan
+            </div>
+          </div>
+        </Html>
+      )}
+    </group>
+  );
+}
