@@ -689,15 +689,67 @@ function StandardFloorFacade({ halfW, halfD }: { halfW: number; halfD: number })
   );
 }
 
+// Helper: Geometri jendela lancip Islamik (Pointed Arch Window)
+function createPointedArchWindowGeometry(
+  width: number,
+  baseHeight: number,
+  peakHeight: number,
+  depth: number = 0.08
+): THREE.BufferGeometry {
+  const shape = new THREE.Shape();
+  const halfW = width / 2;
+  shape.moveTo(-halfW, 0);
+  shape.lineTo(halfW, 0);
+  shape.lineTo(halfW, baseHeight);
+  shape.lineTo(0, baseHeight + peakHeight);
+  shape.lineTo(-halfW, baseHeight);
+  shape.closePath();
+
+  return new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false });
+}
+
 // =========================================================================
-// Fasad Lantai 7: Lengkungan Islamik Lancip (Pointed Lancet Arches)
+// Fasad Lantai 7: Jendela Lengkungan Islamik Lancip (Pointed Lancet Arches)
 // Ciri Khas Utama Arsitektur FST pada Foto Udara 2 & 3
-// Dibuat rapat penuh 4.6m hingga menyentuh dasar lantai atap
+// Dibuat rapat penuh 4.6m, dinding krem solid di belakang, jendela kaca lancip,
+// lis pilaster coral red, dan unit AC di bawah jendela.
 // =========================================================================
 function TopFloorArchedFacade({ halfW, halfD }: { halfW: number; halfD: number }) {
   const height = FLOOR_HEIGHT; // 4.6m
   const yCenter = height / 2;  // 2.3m
 
+  // 1. Dinding krem fasad solid lantai 7 (menutup rapat dari pandangan tembus ke dalam)
+  const wallsGeo = useMemo(() => {
+    const boxes: THREE.BufferGeometry[] = [];
+
+    // Fasad Timur & Barat: Panel dinding solid penuh 4.6m
+    const wallE = new THREE.BoxGeometry(0.24, height, 38.2);
+    wallE.translate(halfW, yCenter, 0);
+    boxes.push(wallE);
+
+    const wallW = new THREE.BoxGeometry(0.24, height, 38.2);
+    wallW.translate(-halfW, yCenter, 0);
+    boxes.push(wallW);
+
+    // Fasad Utara & Selatan (kiri dan kanan core tengah)
+    const wallN1 = new THREE.BoxGeometry(15.8, height, 0.24);
+    wallN1.translate(-14.5, yCenter, halfD);
+    boxes.push(wallN1);
+    const wallN2 = new THREE.BoxGeometry(15.8, height, 0.24);
+    wallN2.translate(14.5, yCenter, halfD);
+    boxes.push(wallN2);
+
+    const wallS1 = new THREE.BoxGeometry(15.8, height, 0.24);
+    wallS1.translate(-14.5, yCenter, -halfD);
+    boxes.push(wallS1);
+    const wallS2 = new THREE.BoxGeometry(15.8, height, 0.24);
+    wallS2.translate(14.5, yCenter, -halfD);
+    boxes.push(wallS2);
+
+    return BufferGeometryUtils.mergeGeometries(boxes, false);
+  }, [height, halfW, halfD, yCenter]);
+
+  // 2. Lis & Pilaster Coral-Red + Lengkungan Lancip Islamik
   const archTrimGeo = useMemo(() => {
     const boxes: THREE.BufferGeometry[] = [];
 
@@ -713,16 +765,7 @@ function TopFloorArchedFacade({ halfW, halfD }: { halfW: number; halfD: number }
       boxes.push(pW);
 
       if (z < 17) {
-        // Puncak lancip lengkungan (Pointed Arch Peak)
-        const peakE = new THREE.BoxGeometry(0.3, 1.1, 2.2);
-        peakE.translate(halfW + 0.08, height - 0.65, z + 1.6);
-        boxes.push(peakE);
-
-        const peakW = new THREE.BoxGeometry(0.3, 1.1, 2.2);
-        peakW.translate(-halfW - 0.08, height - 0.65, z + 1.6);
-        boxes.push(peakW);
-
-        // Balok spandrel bawah
+        // Balok spandrel bawah (y = 0 s/d 1.0m)
         const spE = new THREE.BoxGeometry(0.3, 1.0, 2.9);
         spE.translate(halfW + 0.08, 0.5, z + 1.6);
         boxes.push(spE);
@@ -731,13 +774,22 @@ function TopFloorArchedFacade({ halfW, halfD }: { halfW: number; halfD: number }
         spW.translate(-halfW - 0.08, 0.5, z + 1.6);
         boxes.push(spW);
 
+        // Puncak lancip arch (Pointed Arch Gable)
+        const peakE = new THREE.BoxGeometry(0.32, 0.75, 2.3);
+        peakE.translate(halfW + 0.1, 3.8, z + 1.6);
+        boxes.push(peakE);
+
+        const peakW = new THREE.BoxGeometry(0.32, 0.75, 2.3);
+        peakW.translate(-halfW - 0.1, 3.8, z + 1.6);
+        boxes.push(peakW);
+
         // Balok lintel atas penutup rapat ke lantai atap
-        const lintelE = new THREE.BoxGeometry(0.32, 0.5, 2.9);
-        lintelE.translate(halfW + 0.08, height - 0.25, z + 1.6);
+        const lintelE = new THREE.BoxGeometry(0.32, 0.55, 2.9);
+        lintelE.translate(halfW + 0.08, height - 0.28, z + 1.6);
         boxes.push(lintelE);
 
-        const lintelW = new THREE.BoxGeometry(0.32, 0.5, 2.9);
-        lintelW.translate(-halfW - 0.08, height - 0.25, z + 1.6);
+        const lintelW = new THREE.BoxGeometry(0.32, 0.55, 2.9);
+        lintelW.translate(-halfW - 0.08, height - 0.28, z + 1.6);
         boxes.push(lintelW);
       }
     }
@@ -755,15 +807,6 @@ function TopFloorArchedFacade({ halfW, halfD }: { halfW: number; halfD: number }
       boxes.push(pS);
 
       if (x < 20 && Math.abs(x + 1.3) >= 6.2) {
-        // Puncak lancip lengkungan
-        const peakN = new THREE.BoxGeometry(1.8, 1.1, 0.3);
-        peakN.translate(x + 1.3, height - 0.65, halfD + 0.08);
-        boxes.push(peakN);
-
-        const peakS = new THREE.BoxGeometry(1.8, 1.1, 0.3);
-        peakS.translate(x + 1.3, height - 0.65, -halfD - 0.08);
-        boxes.push(peakS);
-
         // Balok spandrel bawah
         const spN = new THREE.BoxGeometry(2.3, 1.0, 0.3);
         spN.translate(x + 1.3, 0.5, halfD + 0.08);
@@ -773,13 +816,22 @@ function TopFloorArchedFacade({ halfW, halfD }: { halfW: number; halfD: number }
         spS.translate(x + 1.3, 0.5, -halfD - 0.08);
         boxes.push(spS);
 
+        // Puncak lancip arch
+        const peakN = new THREE.BoxGeometry(2.0, 0.75, 0.32);
+        peakN.translate(x + 1.3, 3.8, halfD + 0.1);
+        boxes.push(peakN);
+
+        const peakS = new THREE.BoxGeometry(2.0, 0.75, 0.32);
+        peakS.translate(x + 1.3, 3.8, -halfD - 0.1);
+        boxes.push(peakS);
+
         // Balok lintel atas penutup rapat ke lantai atap
-        const lintelN = new THREE.BoxGeometry(2.3, 0.5, 0.32);
-        lintelN.translate(x + 1.3, height - 0.25, halfD + 0.08);
+        const lintelN = new THREE.BoxGeometry(2.3, 0.55, 0.32);
+        lintelN.translate(x + 1.3, height - 0.28, halfD + 0.08);
         boxes.push(lintelN);
 
-        const lintelS = new THREE.BoxGeometry(2.3, 0.5, 0.32);
-        lintelS.translate(x + 1.3, height - 0.25, -halfD - 0.08);
+        const lintelS = new THREE.BoxGeometry(2.3, 0.55, 0.32);
+        lintelS.translate(x + 1.3, height - 0.28, -halfD - 0.08);
         boxes.push(lintelS);
       }
     }
@@ -787,11 +839,98 @@ function TopFloorArchedFacade({ halfW, halfD }: { halfW: number; halfD: number }
     return BufferGeometryUtils.mergeGeometries(boxes, false);
   }, [height, halfW, halfD, yCenter]);
 
+  // 3. Jendela Kaca Lengkungan Islamik Lancip (Pointed Arched Windows)
+  const windowsGeo = useMemo(() => {
+    const geos: THREE.BufferGeometry[] = [];
+
+    // Jendela Timur & Barat
+    for (let z = -18; z < 17; z += 3.2) {
+      // Jendela Timur
+      const gE = createPointedArchWindowGeometry(2.2, 1.55, 0.85, 0.1);
+      gE.rotateY(Math.PI / 2);
+      gE.translate(halfW + 0.14, 1.1, z + 1.6);
+      geos.push(gE);
+
+      // Jendela Barat
+      const gW = createPointedArchWindowGeometry(2.2, 1.55, 0.85, 0.1);
+      gW.rotateY(-Math.PI / 2);
+      gW.translate(-halfW - 0.14, 1.1, z + 1.6);
+      geos.push(gW);
+    }
+
+    // Jendela Utara & Selatan
+    for (let x = -21; x < 20; x += 2.6) {
+      if (Math.abs(x + 1.3) < 6.2) continue;
+
+      // Jendela Utara
+      const gN = createPointedArchWindowGeometry(2.0, 1.55, 0.85, 0.1);
+      gN.translate(x + 1.3, 1.1, halfD + 0.14);
+      geos.push(gN);
+
+      // Jendela Selatan
+      const gS = createPointedArchWindowGeometry(2.0, 1.55, 0.85, 0.1);
+      gS.rotateY(Math.PI);
+      gS.translate(x + 1.3, 1.1, -halfD - 0.14);
+      geos.push(gS);
+    }
+
+    return BufferGeometryUtils.mergeGeometries(geos, false);
+  }, [halfW, halfD]);
+
+  // 4. Unit AC Luar pada Lantai 7 (Detail Otentik FST Sesuai Foto)
+  const acUnitsGeo = useMemo(() => {
+    const boxes: THREE.BufferGeometry[] = [];
+
+    for (let x = -20; x <= 20; x += 5.2) {
+      if (Math.abs(x) < 6.5) continue;
+      const acN = new THREE.BoxGeometry(0.85, 0.55, 0.45);
+      acN.translate(x, 1.25, halfD + 0.4);
+      boxes.push(acN);
+
+      const acS = new THREE.BoxGeometry(0.85, 0.55, 0.45);
+      acS.translate(x, 1.25, -halfD - 0.4);
+      boxes.push(acS);
+    }
+
+    for (let z = -15; z <= 15; z += 6.4) {
+      const acE = new THREE.BoxGeometry(0.45, 0.55, 0.85);
+      acE.translate(halfW + 0.4, 1.25, z);
+      boxes.push(acE);
+
+      const acW = new THREE.BoxGeometry(0.45, 0.55, 0.85);
+      acW.translate(-halfW - 0.4, 1.25, z);
+      boxes.push(acW);
+    }
+
+    return BufferGeometryUtils.mergeGeometries(boxes, false);
+  }, [halfW, halfD]);
+
   return (
     <group>
+      {wallsGeo && (
+        <mesh geometry={wallsGeo} castShadow receiveShadow>
+          <meshStandardMaterial color={FST_COLORS.creamWall} roughness={0.8} />
+        </mesh>
+      )}
       {archTrimGeo && (
         <mesh geometry={archTrimGeo} castShadow receiveShadow>
           <meshStandardMaterial color={FST_COLORS.coralRed} roughness={0.7} />
+        </mesh>
+      )}
+      {windowsGeo && (
+        <mesh geometry={windowsGeo}>
+          <meshStandardMaterial
+            color={FST_COLORS.glassSky}
+            transparent
+            opacity={0.5}
+            roughness={0.15}
+            depthWrite={false}
+          />
+        </mesh>
+      )}
+      {acUnitsGeo && (
+        <mesh geometry={acUnitsGeo} castShadow>
+          <meshStandardMaterial color={FST_COLORS.acCompressor} roughness={0.5} metalness={0.2} />
         </mesh>
       )}
     </group>
@@ -1044,8 +1183,190 @@ function CourtyardCurvedCores() {
 }
 
 // =========================================================================
-// Struktur Atap Lengkap: Genteng Terakota, Panel Surya, 4 Menara Limasan,
-// dan 2 Kubah Hijau Ikonik Gedung FST
+// Geometri Helper Atap Limasan & Piramida 4 Sisi Otentik Gedung FST
+// Sesuai Foto Udara 2 (tampak-atas.png) & Foto Udara 3 (top-view-3.png)
+// =========================================================================
+
+/**
+ * Menghasilkan geometri Atap Limasan / Piramida 4 Sisi Otentik (Hipped / Pyramid Roof)
+ * Memiliki 4 bidang miring (depan, belakang, kiri, kanan) yang bertemu pada nok bubungan atas.
+ * Jika width === depth, membentuk piramida 4 sisi sempurna.
+ * Jika width > depth atau depth > width, membentuk atap limasan dengan 4 sisi miring dan nok horizontal.
+ */
+function createHippedRoofGeometry(
+  width: number,
+  depth: number,
+  height: number,
+  overhang: number = 0.4
+): THREE.BufferGeometry {
+  const w = width + overhang * 2;
+  const d = depth + overhang * 2;
+  const h = height;
+
+  const positions: number[] = [];
+  const uvs: number[] = [];
+
+  const addQuad = (
+    p0: [number, number, number],
+    p1: [number, number, number],
+    p2: [number, number, number],
+    p3: [number, number, number]
+  ) => {
+    positions.push(...p0, ...p1, ...p2);
+    positions.push(...p0, ...p2, ...p3);
+    uvs.push(0, 0, 1, 0, 1, 1);
+    uvs.push(0, 0, 1, 1, 0, 1);
+  };
+
+  const addTri = (
+    p0: [number, number, number],
+    p1: [number, number, number],
+    p2: [number, number, number]
+  ) => {
+    positions.push(...p0, ...p1, ...p2);
+    uvs.push(0, 0, 1, 0, 0.5, 1);
+  };
+
+  const v0: [number, number, number] = [-w / 2, 0, d / 2];   // Depan-kiri (+Z, -X)
+  const v1: [number, number, number] = [w / 2, 0, d / 2];    // Depan-kanan (+Z, +X)
+  const v2: [number, number, number] = [w / 2, 0, -d / 2];   // Belakang-kanan (-Z, +X)
+  const v3: [number, number, number] = [-w / 2, 0, -d / 2];  // Belakang-kiri (-Z, -X)
+
+  if (Math.abs(w - d) < 0.3) {
+    // Piramida 4 Sisi Sempurna (Square Pyramid)
+    const apex: [number, number, number] = [0, h, 0];
+    addTri(v0, v1, apex); // Sisi depan
+    addTri(v1, v2, apex); // Sisi kanan
+    addTri(v2, v3, apex); // Sisi belakang
+    addTri(v3, v0, apex); // Sisi kiri
+  } else if (w > d) {
+    // Limasan memanjang searah sumbu X
+    const ridgeLen = Math.max(0.6, w - d * 0.95);
+    const rLeft: [number, number, number] = [-ridgeLen / 2, h, 0];
+    const rRight: [number, number, number] = [ridgeLen / 2, h, 0];
+
+    addQuad(v0, v1, rRight, rLeft); // Sisi depan (trapezoid)
+    addQuad(v2, v3, rLeft, rRight); // Sisi belakang (trapezoid)
+    addTri(v3, v0, rLeft);          // Sisi hip kiri (segitiga)
+    addTri(v1, v2, rRight);         // Sisi hip kanan (segitiga)
+  } else {
+    // Limasan memanjang searah sumbu Z
+    const ridgeLen = Math.max(0.6, d - w * 0.95);
+    const rFront: [number, number, number] = [0, h, ridgeLen / 2];
+    const rBack: [number, number, number] = [0, h, -ridgeLen / 2];
+
+    addQuad(v3, v0, rFront, rBack); // Sisi kiri (trapezoid)
+    addQuad(v1, v2, rBack, rFront); // Sisi kanan (trapezoid)
+    addTri(v0, v1, rFront);         // Sisi hip depan (segitiga)
+    addTri(v2, v3, rBack);          // Sisi hip belakang (segitiga)
+  }
+
+  // Bidang alas penutup bawah
+  addQuad(v0, v3, v2, v1);
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geo.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+  geo.computeVertexNormals();
+  return geo;
+}
+
+/**
+ * Garis nok bubungan gelap (ridge caps) untuk atap limasan & piramida 4 sisi
+ */
+function createRoofRidgesGeometry(
+  width: number,
+  depth: number,
+  height: number,
+  overhang: number = 0.4
+): THREE.BufferGeometry {
+  const w = width + overhang * 2;
+  const d = depth + overhang * 2;
+  const h = height;
+  const boxes: THREE.BufferGeometry[] = [];
+
+  const addRidge = (pA: THREE.Vector3, pB: THREE.Vector3, th: number = 0.28) => {
+    const dir = new THREE.Vector3().subVectors(pB, pA);
+    const len = dir.length();
+    if (len < 0.05) return;
+    const mid = new THREE.Vector3().addVectors(pA, pB).multiplyScalar(0.5);
+
+    const b = new THREE.BoxGeometry(th, th, len);
+    b.lookAt(dir);
+    b.translate(mid.x, mid.y, mid.z);
+    boxes.push(b);
+  };
+
+  const v0 = new THREE.Vector3(-w / 2, 0, d / 2);
+  const v1 = new THREE.Vector3(w / 2, 0, d / 2);
+  const v2 = new THREE.Vector3(w / 2, 0, -d / 2);
+  const v3 = new THREE.Vector3(-w / 2, 0, -d / 2);
+
+  if (Math.abs(w - d) < 0.3) {
+    const apex = new THREE.Vector3(0, h, 0);
+    addRidge(v0, apex);
+    addRidge(v1, apex);
+    addRidge(v2, apex);
+    addRidge(v3, apex);
+  } else if (w > d) {
+    const ridgeLen = Math.max(0.6, w - d * 0.95);
+    const rLeft = new THREE.Vector3(-ridgeLen / 2, h, 0);
+    const rRight = new THREE.Vector3(ridgeLen / 2, h, 0);
+    addRidge(rLeft, rRight, 0.35);
+    addRidge(v0, rLeft);
+    addRidge(v3, rLeft);
+    addRidge(v1, rRight);
+    addRidge(v2, rRight);
+  } else {
+    const ridgeLen = Math.max(0.6, d - w * 0.95);
+    const rFront = new THREE.Vector3(0, h, ridgeLen / 2);
+    const rBack = new THREE.Vector3(0, h, -ridgeLen / 2);
+    addRidge(rFront, rBack, 0.35);
+    addRidge(v0, rFront);
+    addRidge(v1, rFront);
+    addRidge(v2, rBack);
+    addRidge(v3, rBack);
+  }
+
+  return BufferGeometryUtils.mergeGeometries(boxes, false);
+}
+
+/**
+ * Lis hijau eave fascia bawah atap khas FST
+ */
+function createEaveFasciaGeometry(
+  width: number,
+  depth: number,
+  overhang: number = 0.4
+): THREE.BufferGeometry {
+  const w = width + overhang * 2;
+  const d = depth + overhang * 2;
+  const boxes: THREE.BufferGeometry[] = [];
+  const th = 0.18;
+  const fh = 0.32;
+
+  const fN = new THREE.BoxGeometry(w, fh, th);
+  fN.translate(0, -fh / 2, d / 2);
+  boxes.push(fN);
+
+  const fS = new THREE.BoxGeometry(w, fh, th);
+  fS.translate(0, -fh / 2, -d / 2);
+  boxes.push(fS);
+
+  const fW = new THREE.BoxGeometry(th, fh, d);
+  fW.translate(-w / 2, -fh / 2, 0);
+  boxes.push(fW);
+
+  const fE = new THREE.BoxGeometry(th, fh, d);
+  fE.translate(w / 2, -fh / 2, 0);
+  boxes.push(fE);
+
+  return BufferGeometryUtils.mergeGeometries(boxes, false);
+}
+
+// =========================================================================
+// Struktur Atap Lengkap: Genteng Terakota Piramida & Limasan 4 Sisi,
+// Panel Surya, 4 Menara Limasan, dan 2 Kubah Hijau Ikonik Gedung FST
 // Sesuai Foto Udara 2 (tampak-atas.png) & Foto Udara 3 (top-view-3.png)
 //
 // PENTING: DAK ATAP MEMILIKI LUBANG VOID TENGAH (HOLLOW SHAPE DENGAN HOLE)
@@ -1083,35 +1404,81 @@ function FstRoofDomesAndSolar({
     return s;
   }, [halfW, halfD, voidHalfW, voidHalfD]);
 
-  // Atap Genteng Sayap Utara & Selatan (Pitched Roof Genteng Terakota)
-  const roofTileGeo = useMemo(() => {
-    const boxes: THREE.BufferGeometry[] = [];
+  // Seluruh Genteng Atap Limasan & Piramida 4 Sisi (Otentik FST)
+  const { allRoofTilesGeo, allRoofRidgesGeo, allRoofFasciaGeo } = useMemo(() => {
+    const tileGeos: THREE.BufferGeometry[] = [];
+    const ridgeGeos: THREE.BufferGeometry[] = [];
+    const fasciaGeos: THREE.BufferGeometry[] = [];
 
-    // Sayap Utara (Panjang 41m di antara menara sudut, di luar void)
-    const rN1 = new THREE.BoxGeometry(41, 1.2, 6.5);
-    rN1.rotateX(0.25);
-    rN1.translate(0, 1.8, 25.0);
-    boxes.push(rN1);
+    // 1. 4 Menara Sudut: Atap Piramida 4 Sisi Sempurna
+    const cornerPositions = [
+      [-28.2, 24.2],
+      [28.2, 24.2],
+      [-28.2, -24.2],
+      [28.2, -24.2],
+    ];
 
-    // Sayap Selatan
-    const rS1 = new THREE.BoxGeometry(41, 1.2, 6.5);
-    rS1.rotateX(-0.25);
-    rS1.translate(0, 1.8, -25.0);
-    boxes.push(rS1);
+    cornerPositions.forEach(([cx, cz]) => {
+      const gTile = createHippedRoofGeometry(10.8, 10.8, 3.8, 0.4);
+      gTile.translate(cx, 2.4, cz);
+      tileGeos.push(gTile);
 
-    // Sayap Barat
-    const rW1 = new THREE.BoxGeometry(6.5, 1.2, 34);
-    rW1.rotateZ(-0.25);
-    rW1.translate(-28.5, 1.8, 0);
-    boxes.push(rW1);
+      const gRidge = createRoofRidgesGeometry(10.8, 10.8, 3.8, 0.4);
+      gRidge.translate(cx, 2.4, cz);
+      ridgeGeos.push(gRidge);
 
-    // Sayap Timur
-    const rE1 = new THREE.BoxGeometry(6.5, 1.2, 34);
-    rE1.rotateZ(0.25);
-    rE1.translate(28.5, 1.8, 0);
-    boxes.push(rE1);
+      const gFascia = createEaveFasciaGeometry(10.8, 10.8, 0.4);
+      gFascia.translate(cx, 2.4, cz);
+      fasciaGeos.push(gFascia);
+    });
 
-    return BufferGeometryUtils.mergeGeometries(boxes, false);
+    // 2. 4 Bagian Sayap Gedung (Utara & Selatan): Atap Limasan 4 Sisi
+    const wingNorthSouth = [
+      { x: -15.0, z: 24.6 },  // Sayap Barat-Laut
+      { x: 15.0, z: 24.6 },   // Sayap Timur-Laut
+      { x: -15.0, z: -24.6 }, // Sayap Barat-Daya
+      { x: 15.0, z: -24.6 },  // Sayap Tenggara
+    ];
+
+    wingNorthSouth.forEach(({ x, z }) => {
+      const gTile = createHippedRoofGeometry(16.0, 7.4, 3.4, 0.4);
+      gTile.translate(x, 0.5, z);
+      tileGeos.push(gTile);
+
+      const gRidge = createRoofRidgesGeometry(16.0, 7.4, 3.4, 0.4);
+      gRidge.translate(x, 0.5, z);
+      ridgeGeos.push(gRidge);
+
+      const gFascia = createEaveFasciaGeometry(16.0, 7.4, 0.4);
+      gFascia.translate(x, 0.5, z);
+      fasciaGeos.push(gFascia);
+    });
+
+    // 3. 2 Sayap Memanjang (Barat & Timur): Atap Limasan 4 Sisi
+    const wingEastWest = [
+      { x: -28.4, z: 0 }, // Sayap Barat
+      { x: 28.4, z: 0 },  // Sayap Timur
+    ];
+
+    wingEastWest.forEach(({ x, z }) => {
+      const gTile = createHippedRoofGeometry(7.4, 37.6, 3.4, 0.4);
+      gTile.translate(x, 0.5, z);
+      tileGeos.push(gTile);
+
+      const gRidge = createRoofRidgesGeometry(7.4, 37.6, 3.4, 0.4);
+      gRidge.translate(x, 0.5, z);
+      ridgeGeos.push(gRidge);
+
+      const gFascia = createEaveFasciaGeometry(7.4, 37.6, 0.4);
+      gFascia.translate(x, 0.5, z);
+      fasciaGeos.push(gFascia);
+    });
+
+    return {
+      allRoofTilesGeo: BufferGeometryUtils.mergeGeometries(tileGeos, false),
+      allRoofRidgesGeo: BufferGeometryUtils.mergeGeometries(ridgeGeos, false),
+      allRoofFasciaGeo: BufferGeometryUtils.mergeGeometries(fasciaGeos, false),
+    };
   }, []);
 
   return (
@@ -1145,7 +1512,7 @@ function FstRoofDomesAndSolar({
         <meshStandardMaterial color={FST_COLORS.creamWall} roughness={0.8} />
       </mesh>
 
-      {/* Lis Merah & Tanaman Bibir Void Atap */}
+      {/* Lis Merah Bibir Void Atap */}
       <mesh position={[0, 1.28, voidHalfD]}>
         <boxGeometry args={[voidHalfW * 2 + 0.3, 0.08, 0.32]} />
         <meshStandardMaterial color={FST_COLORS.coralRed} roughness={0.7} />
@@ -1163,14 +1530,28 @@ function FstRoofDomesAndSolar({
         <meshStandardMaterial color={FST_COLORS.coralRed} roughness={0.7} />
       </mesh>
 
-      {/* 2. Genteng Terakota Miring di 4 Sayap Luar */}
-      {roofTileGeo && (
-        <mesh geometry={roofTileGeo} castShadow receiveShadow>
+      {/* 2. Seluruh Genteng Atap Limasan & Piramida 4 Sisi Terakota */}
+      {allRoofTilesGeo && (
+        <mesh geometry={allRoofTilesGeo} castShadow receiveShadow>
           <meshStandardMaterial color={FST_COLORS.roofTile} roughness={0.7} />
         </mesh>
       )}
 
-      {/* 3. 4 Menara Sudut dengan Atap Limasan Piramida (Foto 2 & 3) */}
+      {/* 3. Nok Bubungan Atap Gelap (Ridge Caps) */}
+      {allRoofRidgesGeo && (
+        <mesh geometry={allRoofRidgesGeo} castShadow>
+          <meshStandardMaterial color={FST_COLORS.roofRidge} roughness={0.5} />
+        </mesh>
+      )}
+
+      {/* 4. Lis Hijau Eave Fascia di Bawah Atap */}
+      {allRoofFasciaGeo && (
+        <mesh geometry={allRoofFasciaGeo} castShadow>
+          <meshStandardMaterial color={FST_COLORS.domeGreen} roughness={0.6} />
+        </mesh>
+      )}
+
+      {/* 5. Dinding Badan 4 Menara Sudut di Bawah Atap Piramida */}
       {[
         [-28.2, 24.2],
         [28.2, 24.2],
@@ -1178,61 +1559,68 @@ function FstRoofDomesAndSolar({
         [28.2, -24.2],
       ].map(([tx, tz], i) => (
         <group key={i} position={[tx, 0, tz]}>
-          {/* Peninggi Badan Menara Sudut */}
-          <mesh position={[0, 1.4, 0]} castShadow receiveShadow>
-            <boxGeometry args={[10.5, 2.8, 10.5]} />
+          <mesh position={[0, 1.2, 0]} castShadow receiveShadow>
+            <boxGeometry args={[10.5, 2.4, 10.5]} />
             <meshStandardMaterial color={FST_COLORS.creamWall} roughness={0.8} />
           </mesh>
-          {/* Atap Limasan Piramida Genteng Terakota */}
-          <mesh position={[0, 4.2, 0]} rotation={[0, Math.PI / 4, 0]} castShadow>
-            <coneGeometry args={[7.8, 3.2, 4]} />
-            <meshStandardMaterial color={FST_COLORS.roofTile} roughness={0.65} />
-          </mesh>
-          {/* Nok Bubungan Piramida Gelap */}
-          <mesh position={[0, 5.85, 0]}>
-            <sphereGeometry args={[0.35, 12, 12]} />
+          {/* Jarum Bola Nok Puncak Piramida */}
+          <mesh position={[0, 6.25, 0]}>
+            <sphereGeometry args={[0.32, 12, 12]} />
             <meshStandardMaterial color={FST_COLORS.roofRidge} roughness={0.5} />
           </mesh>
         </group>
       ))}
 
-      {/* 4. Susunan Panel Surya PV Biru Gelap (Foto Udara 2 & 3) */}
-      {/* 2 Array Panel Surya Besar di Sayap Utara */}
-      <group position={[-12.5, 2.5, 24.8]} rotation={[0.25, 0, 0]}>
+      {/* 6. Susunan Panel Surya PV Biru Gelap Mengikuti Kemiringan Atap Limasan */}
+      {/* Array Panel Surya di Sayap Barat-Laut (Sisi Miring Utara) */}
+      <group position={[-15.0, 2.2, 26.45]} rotation={[-0.743, 0, 0]}>
         <mesh castShadow receiveShadow>
-          <boxGeometry args={[13.5, 0.12, 4.6]} />
+          <boxGeometry args={[13.5, 0.12, 3.6]} />
           <meshStandardMaterial color={FST_COLORS.solarBlue} roughness={0.2} metalness={0.6} />
         </mesh>
         <mesh position={[0, 0.08, 0]}>
-          <boxGeometry args={[13.6, 0.04, 4.7]} />
+          <boxGeometry args={[13.6, 0.04, 3.7]} />
           <meshStandardMaterial color={FST_COLORS.solarBorder} roughness={0.4} metalness={0.8} />
         </mesh>
       </group>
 
-      <group position={[12.5, 2.5, 24.8]} rotation={[0.25, 0, 0]}>
+      {/* Array Panel Surya di Sayap Timur-Laut (Sisi Miring Utara) */}
+      <group position={[15.0, 2.2, 26.45]} rotation={[-0.743, 0, 0]}>
         <mesh castShadow receiveShadow>
-          <boxGeometry args={[13.5, 0.12, 4.6]} />
+          <boxGeometry args={[13.5, 0.12, 3.6]} />
           <meshStandardMaterial color={FST_COLORS.solarBlue} roughness={0.2} metalness={0.6} />
         </mesh>
         <mesh position={[0, 0.08, 0]}>
-          <boxGeometry args={[13.6, 0.04, 4.7]} />
+          <boxGeometry args={[13.6, 0.04, 3.7]} />
           <meshStandardMaterial color={FST_COLORS.solarBorder} roughness={0.4} metalness={0.8} />
         </mesh>
       </group>
 
-      {/* Array Panel Surya di Sayap Selatan */}
-      <group position={[0, 2.5, -24.8]} rotation={[-0.25, 0, 0]}>
+      {/* Array Panel Surya di Sayap Barat-Daya (Sisi Miring Selatan) */}
+      <group position={[-15.0, 2.2, -26.45]} rotation={[0.743, 0, 0]}>
         <mesh castShadow receiveShadow>
-          <boxGeometry args={[22.0, 0.12, 4.6]} />
+          <boxGeometry args={[13.5, 0.12, 3.6]} />
           <meshStandardMaterial color={FST_COLORS.solarBlue} roughness={0.2} metalness={0.6} />
         </mesh>
         <mesh position={[0, 0.08, 0]}>
-          <boxGeometry args={[22.1, 0.04, 4.7]} />
+          <boxGeometry args={[13.6, 0.04, 3.7]} />
           <meshStandardMaterial color={FST_COLORS.solarBorder} roughness={0.4} metalness={0.8} />
         </mesh>
       </group>
 
-      {/* 5. 2 Kubah Hijau Ikonik FST (Menara Utara & Selatan) */}
+      {/* Array Panel Surya di Sayap Tenggara (Sisi Miring Selatan) */}
+      <group position={[15.0, 2.2, -26.45]} rotation={[0.743, 0, 0]}>
+        <mesh castShadow receiveShadow>
+          <boxGeometry args={[13.5, 0.12, 3.6]} />
+          <meshStandardMaterial color={FST_COLORS.solarBlue} roughness={0.2} metalness={0.6} />
+        </mesh>
+        <mesh position={[0, 0.08, 0]}>
+          <boxGeometry args={[13.6, 0.04, 3.7]} />
+          <meshStandardMaterial color={FST_COLORS.solarBorder} roughness={0.4} metalness={0.8} />
+        </mesh>
+      </group>
+
+      {/* 7. 2 Kubah Hijau Ikonik FST (Menara Utara & Selatan) */}
       {/* 1. Menara Kubah Utara (Lobby Sarjana) */}
       <group position={[0, 0, 22.0]}>
         {/* Struktur Dasar Menara Putih Kotak */}
