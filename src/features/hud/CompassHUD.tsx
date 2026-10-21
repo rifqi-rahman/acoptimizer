@@ -1,14 +1,13 @@
 import React, { useMemo } from "react";
-import { RotateCcw } from "lucide-react";
 import { useViewStore } from "../../stores/viewStore";
 
 /**
  * Kompas Mata Angin HUD Interaktif Gedung FST
- * Sesuai konvensi orientasi spasial FST:
- * - U (Utara): Sisi gedung berpintu masuk dengan atap kanopi kuning (+Z) -> Ditandai Merah Spesial
- * - T (Timur): Sisi samping kiri gedung menghadap keluar (-X)
- * - S (Selatan): Sisi gedung menghadap ke atas / berseberangan dengan atap kuning (-Z)
- * - B (Barat): Sisi samping kanan gedung menghadap keluar (+X)
+ * Ukuran diperbesar dan tanpa panel teks, fokus murni pada dial kompas:
+ * - U (Utara): Sisi gedung berpintu masuk dengan atap kanopi kuning (+Z) -> Ditandai Merah
+ * - T (Timur): Sisi samping kiri gedung (-X)
+ * - S (Selatan): Sisi gedung menghadap ke atas / berseberangan (-Z)
+ * - B (Barat): Sisi samping kanan gedung (+X)
  */
 export const CompassHUD: React.FC = () => {
   const { cameraAzimuth, is2D, triggerResetCamera } = useViewStore();
@@ -19,11 +18,11 @@ export const CompassHUD: React.FC = () => {
   const rotDeg = is2D ? 180 : (cameraAzimuth * 180) / Math.PI;
 
   // Hitung posisi koordinat huruf mata angin di sekeliling lingkaran kompas
-  // Diameter dial = 56px, Center = (28, 28), Radius = 19.5px
+  // Diameter viewBox = 72x72, Center = (36, 36), Radius = 24.5px
   const positions = useMemo(() => {
-    const cx = 28;
-    const cy = 28;
-    const r = 19.5;
+    const cx = 36;
+    const cy = 36;
+    const r = 24.5;
 
     const getPos = (degOffset: number) => {
       const totalDeg = (degOffset + rotDeg) % 360;
@@ -42,84 +41,87 @@ export const CompassHUD: React.FC = () => {
     };
   }, [rotDeg]);
 
-  // Label nama arah kamera yang sedang menghadap ke depan
-  const facingInfo = useMemo(() => {
-    if (is2D) {
+  // Tick marks keliling lingkaran (setiap 30 derajat)
+  const tickMarks = useMemo(() => {
+    const cx = 36;
+    const cy = 36;
+    return [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((t) => {
+      const rad = (t * Math.PI) / 180;
+      const isCardinal = t % 90 === 0;
       return {
-        name: "Denah 2D",
-        sub: "Sisi Utara di Atas",
-        color: "text-blue-600",
+        key: t,
+        x1: cx + 33.5 * Math.sin(rad),
+        y1: cy - 33.5 * Math.cos(rad),
+        x2: cx + (isCardinal ? 29.5 : 31.5) * Math.sin(rad),
+        y2: cy - (isCardinal ? 29.5 : 31.5) * Math.cos(rad),
+        stroke: isCardinal ? "#64748B" : "#334155",
+        strokeWidth: isCardinal ? 1.5 : 1,
       };
-    }
-
-    const deg = (((cameraAzimuth * 180) / Math.PI) % 360 + 360) % 360;
-    if (deg >= 337.5 || deg < 22.5) {
-      return { name: "Sisi Utara", sub: "Lobi Masuk (Kanopi Kuning)", color: "text-red-600" };
-    }
-    if (deg >= 22.5 && deg < 67.5) {
-      return { name: "Barat Laut", sub: "Sudut Depan Kanan", color: "text-slate-800" };
-    }
-    if (deg >= 67.5 && deg < 112.5) {
-      return { name: "Sisi Barat", sub: "Sayap Kanan", color: "text-slate-800" };
-    }
-    if (deg >= 112.5 && deg < 157.5) {
-      return { name: "Barat Daya", sub: "Sudut Belakang Kanan", color: "text-slate-800" };
-    }
-    if (deg >= 157.5 && deg < 202.5) {
-      return { name: "Sisi Selatan", sub: "Sisi Belakang", color: "text-slate-800" };
-    }
-    if (deg >= 202.5 && deg < 247.5) {
-      return { name: "Tenggara", sub: "Sudut Belakang Kiri", color: "text-slate-800" };
-    }
-    if (deg >= 247.5 && deg < 292.5) {
-      return { name: "Sisi Timur", sub: "Sayap Kiri", color: "text-slate-800" };
-    }
-    return { name: "Timur Laut", sub: "Sudut Depan Kiri", color: "text-slate-800" };
-  }, [cameraAzimuth, is2D]);
+    });
+  }, []);
 
   return (
     <div
       onClick={() => !is2D && triggerResetCamera()}
-      title={is2D ? "Denah 2D (Sisi Utara ke Atas)" : "Klik untuk reset orientasi kamera ke Sisi Utara (Depan)"}
-      className={`absolute top-4 right-4 z-30 pointer-events-auto flex items-center gap-3 bg-white/95 backdrop-blur-md pl-2 pr-3.5 py-1.5 rounded-full shadow-lg border border-slate-200/90 select-none group transition-all duration-150 ${
-        !is2D ? "cursor-pointer hover:bg-slate-50 hover:shadow-xl hover:border-slate-300" : ""
+      title={
+        is2D
+          ? "Denah 2D (Sisi Utara ke Atas)"
+          : "Kompas Gedung FST (U=Utara, T=Timur, S=Selatan, B=Barat)\nKlik untuk reset orientasi kamera ke Sisi Utara (Depan)"
+      }
+      className={`absolute top-4 right-4 z-30 pointer-events-auto w-20 h-20 rounded-full bg-white/95 backdrop-blur-md shadow-xl border border-slate-200/90 select-none p-1 flex items-center justify-center transition-all duration-150 ${
+        !is2D
+          ? "cursor-pointer hover:scale-105 active:scale-95 hover:shadow-2xl hover:border-slate-300"
+          : ""
       }`}
     >
-      {/* Dial Kompas Interaktif dengan 4 Tanda Baca Mata Angin (U, T, S, B) */}
-      <div className="relative w-14 h-14 rounded-full bg-slate-900 shadow-inner flex items-center justify-center overflow-hidden border border-slate-700/60">
-        <svg viewBox="0 0 56 56" className="w-full h-full pointer-events-none">
-          {/* Ring Dial Luar dengan Aksen Garis & Tick Marks */}
-          <circle cx="28" cy="28" r="26" fill="#0F172A" stroke="#334155" strokeWidth="1" />
-          <circle cx="28" cy="28" r="21" fill="none" stroke="#1E293B" strokeWidth="0.8" strokeDasharray="1.5 2" />
+      {/* Dial Kompas Interaktif Diperbesar dengan 4 Tanda Baca Mata Angin (U, T, S, B) */}
+      <div className="relative w-full h-full rounded-full bg-slate-900 shadow-inner flex items-center justify-center overflow-hidden border border-slate-700/70">
+        <svg viewBox="0 0 72 72" className="w-full h-full pointer-events-none">
+          {/* Latar Belakang Dial & Ring Aksen */}
+          <circle cx="36" cy="36" r="34" fill="#0F172A" stroke="#334155" strokeWidth="1" />
+          <circle cx="36" cy="36" r="26.5" fill="none" stroke="#1E293B" strokeWidth="0.8" strokeDasharray="2 2.5" />
 
-          {/* Jarum Kompas 3D yang Berputar Dinamis Menunjuk Arah */}
-          <g transform={`rotate(${rotDeg}, 28, 28)`} className="transition-transform duration-100 ease-out">
+          {/* Jarum Kompas 3D & Aksen Rotasi Mengikuti Kamera */}
+          <g transform={`rotate(${rotDeg}, 36, 36)`} className="transition-transform duration-100 ease-out">
+            {/* Garis-garis Tick Derajat */}
+            {tickMarks.map((tm) => (
+              <line
+                key={tm.key}
+                x1={tm.x1}
+                y1={tm.y1}
+                x2={tm.x2}
+                y2={tm.y2}
+                stroke={tm.stroke}
+                strokeWidth={tm.strokeWidth}
+              />
+            ))}
+
             {/* Jarum Merah Arah UTARA (Sisi Atap Kanopi Kuning / Posisi 180 deg) */}
-            <polygon points="28,28 25.5,28 28,44 30.5,28" fill="#EF4444" />
-            <polygon points="28,28 28,44 30.5,28" fill="#DC2626" />
+            <polygon points="36,36 32.5,36 36,57 39.5,36" fill="#EF4444" />
+            <polygon points="36,36 36,57 39.5,36" fill="#DC2626" />
 
             {/* Jarum Abu-Abu Arah SELATAN (Sisi Belakang / Posisi 0 deg) */}
-            <polygon points="28,28 25.5,28 28,12 30.5,28" fill="#94A3B8" />
-            <polygon points="28,28 28,12 30.5,28" fill="#64748B" />
+            <polygon points="36,36 32.5,36 36,15 39.5,36" fill="#94A3B8" />
+            <polygon points="36,36 36,15 39.5,36" fill="#64748B" />
 
             {/* Sayap Crosshair Halus ke Timur & Barat */}
-            <polygon points="28,28 28,26.5 15,28 28,29.5" fill="#475569" />
-            <polygon points="28,28 28,26.5 41,28 28,29.5" fill="#475569" />
+            <polygon points="36,36 36,34 18,36 36,38" fill="#475569" />
+            <polygon points="36,36 36,34 54,36 36,38" fill="#475569" />
 
             {/* Titik Poros Tengah */}
-            <circle cx="28" cy="28" r="2.5" fill="#E2E8F0" stroke="#0F172A" strokeWidth="1" />
+            <circle cx="36" cy="36" r="3.2" fill="#F1F5F9" stroke="#0F172A" strokeWidth="1.2" />
           </g>
 
-          {/* 4 Tanda Baca Mata Angin (U, T, B, S) yang Selalu Tegak & Mengorbit Mengikuti Sudut Pandang */}
+          {/* 4 Tanda Baca Mata Angin (U, T, S, B) yang Selalu Tegak & Mengorbit Mengikuti Sudut Pandang */}
           {/* 1. U -> UTARA (Merah Spesial) */}
           <g className="transition-all duration-100 ease-out">
-            <circle cx={positions.U.x} cy={positions.U.y} r="4.5" fill="#EF4444" />
+            <circle cx={positions.U.x} cy={positions.U.y} r="5.5" fill="#EF4444" stroke="#B91C1C" strokeWidth="0.8" />
             <text
               x={positions.U.x}
               y={positions.U.y}
               textAnchor="middle"
               dominantBaseline="central"
-              className="text-[6.5px] font-black fill-white select-none"
+              className="text-[8px] font-black fill-white select-none"
             >
               U
             </text>
@@ -127,13 +129,13 @@ export const CompassHUD: React.FC = () => {
 
           {/* 2. T -> TIMUR (Sisi Sayap Kiri) */}
           <g className="transition-all duration-100 ease-out">
-            <circle cx={positions.T.x} cy={positions.T.y} r="4" fill="#1E293B" stroke="#475569" strokeWidth="0.8" />
+            <circle cx={positions.T.x} cy={positions.T.y} r="5" fill="#1E293B" stroke="#475569" strokeWidth="0.9" />
             <text
               x={positions.T.x}
               y={positions.T.y}
               textAnchor="middle"
               dominantBaseline="central"
-              className="text-[6px] font-extrabold fill-slate-200 select-none"
+              className="text-[7.5px] font-extrabold fill-slate-200 select-none"
             >
               T
             </text>
@@ -141,13 +143,13 @@ export const CompassHUD: React.FC = () => {
 
           {/* 3. S -> SELATAN (Sisi Berseberangan / Atas) */}
           <g className="transition-all duration-100 ease-out">
-            <circle cx={positions.S.x} cy={positions.S.y} r="4" fill="#1E293B" stroke="#475569" strokeWidth="0.8" />
+            <circle cx={positions.S.x} cy={positions.S.y} r="5" fill="#1E293B" stroke="#475569" strokeWidth="0.9" />
             <text
               x={positions.S.x}
               y={positions.S.y}
               textAnchor="middle"
               dominantBaseline="central"
-              className="text-[6px] font-extrabold fill-slate-200 select-none"
+              className="text-[7.5px] font-extrabold fill-slate-200 select-none"
             >
               S
             </text>
@@ -155,36 +157,18 @@ export const CompassHUD: React.FC = () => {
 
           {/* 4. B -> BARAT (Sisi Sayap Kanan) */}
           <g className="transition-all duration-100 ease-out">
-            <circle cx={positions.B.x} cy={positions.B.y} r="4" fill="#1E293B" stroke="#475569" strokeWidth="0.8" />
+            <circle cx={positions.B.x} cy={positions.B.y} r="5" fill="#1E293B" stroke="#475569" strokeWidth="0.9" />
             <text
               x={positions.B.x}
               y={positions.B.y}
               textAnchor="middle"
               dominantBaseline="central"
-              className="text-[6px] font-extrabold fill-slate-200 select-none"
+              className="text-[7.5px] font-extrabold fill-slate-200 select-none"
             >
               B
             </text>
           </g>
         </svg>
-      </div>
-
-      {/* Teks Informasi Orientasi & Arah Pandang Kamera */}
-      <div className="flex flex-col">
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none">
-            Mata Angin
-          </span>
-          {!is2D && (
-            <RotateCcw className="w-2.5 h-2.5 text-slate-400 group-hover:rotate-180 transition-transform duration-300" />
-          )}
-        </div>
-        <span className={`text-xs font-black leading-tight flex items-center gap-1 ${facingInfo.color || "text-slate-800"}`}>
-          {facingInfo.name}
-        </span>
-        <span className="text-[9.5px] text-slate-500 font-medium leading-none">
-          {facingInfo.sub}
-        </span>
       </div>
     </div>
   );
