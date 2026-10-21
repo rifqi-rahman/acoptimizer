@@ -11,6 +11,8 @@ interface ViewStoreState {
   is2D: boolean;
   isKiosk: boolean;
   cameraAzimuth: number; // Sudut putar kamera dalam radian (untuk kompas 3D)
+  isSidebarExpanded: boolean;
+  activeModal: "settings" | "account" | "automations" | null;
 
   // Actions
   setMode: (mode: ViewMode) => void;
@@ -21,6 +23,9 @@ interface ViewStoreState {
   toggle2D: () => void;
   setKiosk: (kiosk: boolean) => void;
   resetToBuilding: () => void;
+  toggleSidebar: () => void;
+  setSidebarExpanded: (expanded: boolean) => void;
+  openModal: (modal: "settings" | "account" | "automations" | null) => void;
 }
 
 export const useViewStore = create<ViewStoreState>((set) => ({
@@ -31,6 +36,8 @@ export const useViewStore = create<ViewStoreState>((set) => ({
   is2D: false,
   isKiosk: false,
   cameraAzimuth: 0,
+  isSidebarExpanded: false,
+  activeModal: null,
 
   setMode: (mode) => set({ mode }),
   setCameraAzimuth: (cameraAzimuth) => set({ cameraAzimuth }),
@@ -52,4 +59,8 @@ export const useViewStore = create<ViewStoreState>((set) => ({
       mode: "building",
       selectedSlotId: null,
     }),
+  toggleSidebar: () =>
+    set((state) => ({ isSidebarExpanded: !state.isSidebarExpanded })),
+  setSidebarExpanded: (isSidebarExpanded) => set({ isSidebarExpanded }),
+  openModal: (activeModal) => set({ activeModal }),
 }));
