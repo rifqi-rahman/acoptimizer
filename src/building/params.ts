@@ -40,13 +40,14 @@ export type RoomKind =
   | "theater"
   | "meeting"
   | "toilet"
+  | "stairs"
   | "service"
   | "core"
   | "lobby"
   | "garden";
 
 export interface RoomGeometry {
-  slotId: string;       // Misal "6-U1", "3-S2", "7-NE"
+  slotId: string;       // Misal "6-U1", "3-S2", "7-WC1", "7-TD1"
   displayName: string;  // Misal "Ruang 601", "Toilet NE"
   level: number;        // Lantai 1 s/d 7
   kind: RoomKind;

@@ -4,9 +4,9 @@ import { useMockSimulation } from "./data/MockSimulation";
 import { CompassHUD } from "./features/hud/CompassHUD";
 import { FloorRail } from "./features/hud/FloorRail";
 import { LayerSwitcher } from "./features/hud/LayerSwitcher";
+import { SidePanel } from "./features/hud/SidePanel";
 import { TopBar } from "./features/hud/TopBar";
 import { FloorPlan2D } from "./features/plan2d/FloorPlan2D";
-import { RoomSheet } from "./features/room/RoomSheet";
 import { TwinCanvas } from "./features/twin3d/TwinCanvas";
 import { useRoomStore } from "./stores/roomStore";
 import { useViewStore } from "./stores/viewStore";
@@ -48,26 +48,36 @@ export function App() {
   }, [floors, selectedSlotId]);
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-[#F4F5F7] select-none">
-      {/* TopBar HUD */}
-      <TopBar />
+    <div className="relative w-screen h-screen overflow-hidden bg-[#F1F3F6] select-none flex flex-col p-4 pt-3 gap-3">
+      {/* TopBar Header Bar */}
+      <header className="h-11 w-full flex items-center justify-between flex-shrink-0">
+        <TopBar />
+      </header>
 
-      {/* Main View: 2D Floor Plan atau 3D Digital Twin */}
-      <main className="w-full h-full relative">
-        {is2D || mode === "floor" ? (
-          <FloorPlan2D floor={currentFloor} />
-        ) : (
-          <TwinCanvas floors={floors} />
-        )}
-      </main>
+      {/* Main Workspace: 3/4 Left Visual Container + 1/4 Right Side Panel */}
+      <div className="flex-1 w-full flex gap-3 min-h-0 overflow-hidden">
+        {/* Visual Container: 3/4 Width (75%) Align Kiri */}
+        <section className="w-3/4 h-full relative rounded-3xl bg-white shadow-xl border border-slate-200/90 overflow-hidden flex flex-col">
+          {/* Visual Canvas (2D / 3D) */}
+          <div className="w-full h-full relative overflow-hidden">
+            {is2D || mode === "floor" ? (
+              <FloorPlan2D floor={currentFloor} />
+            ) : (
+              <TwinCanvas floors={floors} />
+            )}
+          </div>
 
-      {/* Navigation Rails, Compass & Layer Controls */}
-      <CompassHUD />
-      <FloorRail />
-      <LayerSwitcher />
+          {/* Persistent Floating HUDs inside the Visual Panel */}
+          <FloorRail />
+          <CompassHUD />
+          <LayerSwitcher />
+        </section>
 
-      {/* Detail Room Sheet Drawer */}
-      <RoomSheet room={selectedRoom} />
+        {/* Right Aside Panel: 1/4 Width (25%) */}
+        <aside className="w-1/4 h-full relative rounded-3xl bg-white shadow-xl border border-slate-200/90 overflow-hidden flex flex-col">
+          <SidePanel room={selectedRoom} currentFloor={currentFloor} />
+        </aside>
+      </div>
     </div>
   );
 }

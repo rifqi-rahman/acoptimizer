@@ -36,8 +36,18 @@ export const RoomSheet: React.FC<RoomSheetProps> = ({ room }) => {
             )}
           </div>
           <h3 className="text-2xl font-black text-slate-800 tracking-tight">{room.displayName}</h3>
-          <p className="text-xs text-slate-500 capitalize">
-            Lantai {room.level} • {room.kind}
+          <p className="text-xs text-slate-500">
+            Lantai {room.level} • {
+              room.kind === "stairs" ? "Tangga Darurat" :
+              room.kind === "toilet" ? "Toilet" :
+              room.kind === "service" ? "Ruang Fasilitas / Teknis" :
+              room.kind === "classroom" ? "Ruang Kelas" :
+              room.kind === "office" ? "Ruang Dosen & Staf" :
+              room.kind === "core" ? "Tangga Utama & Lift" :
+              room.kind === "lobby" ? "Lobby Utama" :
+              room.kind === "garden" ? "Taman Atrium" :
+              room.kind
+            }
           </p>
         </div>
 

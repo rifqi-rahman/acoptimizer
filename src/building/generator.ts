@@ -76,17 +76,19 @@ export function generateFloorModel(
   };
 
   // Sudut-sudut Gedung (Nama lokasi bersih tanpa singkatan arah mata angin):
-  // Pojok NW: Ruang Teknis Fasilitas 1
-  addRoom(`${level}-NW`, `Ruang Fasilitas 1`, "service", -halfW, -halfW + rDepth, halfD - rDepth, halfD, false);
+  // Pojok Fasilitas 1
+  addRoom(`${level}-FAS1`, `Ruang Fasilitas 1`, "service", -halfW, -halfW + rDepth, halfD - rDepth, halfD, false);
 
-  // Pojok NE: Toilet & Tangga Darurat 1
-  addRoom(`${level}-NE`, `Toilet & Tangga Darurat 1`, "toilet", halfW - rDepth, halfW, halfD - rDepth, halfD, false);
+  // Pojok Timur Laut: Toilet 1 (bawah) & Tangga Darurat 1 (slot kecil di atas toilet)
+  addRoom(`${level}-WC1`, `Toilet 1`, "toilet", halfW - rDepth, halfW, halfD - rDepth, halfD - 3, false);
+  addRoom(`${level}-TD1`, `Tangga Darurat 1`, "stairs", halfW - rDepth, halfW, halfD - 3, halfD, false);
 
-  // Pojok SW: Toilet & Tangga Darurat 2
-  addRoom(`${level}-SW`, `Toilet & Tangga Darurat 2`, "toilet", -halfW, -halfW + rDepth, -halfD, -halfD + rDepth, false);
+  // Pojok Barat Daya: Toilet 2 (bawah) & Tangga Darurat 2 (slot kecil di atas toilet, di bawah R.x13)
+  addRoom(`${level}-WC2`, `Toilet 2`, "toilet", -halfW, -halfW + rDepth, -halfD, -halfD + 5, false);
+  addRoom(`${level}-TD2`, `Tangga Darurat 2`, "stairs", -halfW, -halfW + rDepth, -halfD + 5, -halfD + rDepth, false);
 
-  // Pojok SE: Ruang Fasilitas 2
-  addRoom(`${level}-SE`, `Ruang Fasilitas 2`, "service", halfW - rDepth, halfW, -halfD, -halfD + rDepth, false);
+  // Pojok Fasilitas 2
+  addRoom(`${level}-FAS2`, `Ruang Fasilitas 2`, "service", halfW - rDepth, halfW, -halfD, -halfD + rDepth, false);
 
   // Core Utara (Lounge + Tangga Imperial + 2 Lift)
   addRoom(

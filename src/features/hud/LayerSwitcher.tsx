@@ -13,7 +13,7 @@ export const LayerSwitcher: React.FC = () => {
   ];
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 bg-white/90 backdrop-blur-md p-1.5 rounded-full shadow-xl border border-slate-200/80">
+    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1 bg-white/95 backdrop-blur-md p-1.5 rounded-full shadow-xl border border-slate-200/80">
       {layers.map((item) => {
         const isActive = layer === item.id;
         return (

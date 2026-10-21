@@ -10,7 +10,7 @@ export const CompassHUD: React.FC = () => {
   const angleDeg = is2D ? 0 : -(cameraAzimuth * 180) / Math.PI;
 
   return (
-    <div className="fixed top-4 right-6 z-40 pointer-events-auto flex items-center gap-2.5 bg-white/95 backdrop-blur-md px-3.5 py-2 rounded-full shadow-lg border border-slate-200/80 select-none">
+    <div className="absolute top-4 right-4 z-30 pointer-events-auto flex items-center gap-2.5 bg-white/95 backdrop-blur-md px-3.5 py-2 rounded-full shadow-lg border border-slate-200/80 select-none">
       {/* Dial Compass Lingkaran */}
       <div className="relative w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 shadow-inner">
         {/* Jarum Kompas yang Berputar Dinamis */}

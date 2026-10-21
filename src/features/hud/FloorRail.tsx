@@ -7,7 +7,7 @@ export const FloorRail: React.FC = () => {
   const floors = [7, 6, 5, 4, 3, 2, 1];
 
   return (
-    <div className="fixed left-6 top-1/2 -translate-y-1/2 z-50 pointer-events-auto flex flex-col items-center gap-1.5 w-12 bg-white/95 backdrop-blur-md p-1.5 rounded-full shadow-2xl border border-slate-200/90">
+    <div className="absolute left-4 top-1/2 -translate-y-1/2 z-30 pointer-events-auto flex flex-col items-center gap-1.5 w-12 bg-white/95 backdrop-blur-md p-1.5 rounded-full shadow-2xl border border-slate-200/90">
       {/* Tombol Home: Gedung FST */}
       <div className="relative flex items-center justify-center">
         <button
