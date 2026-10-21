@@ -42,7 +42,7 @@ export const Building3D: React.FC<Building3DProps> = ({ floors }) => {
             floors={floors}
             isCutaway={isCutaway}
             hoveredFloor={hoveredFloor}
-            onFloorClick={(lvl) => selectFloor(lvl)}
+            onFloorDoubleClick={(lvl) => selectFloor(lvl)}
             onFloorHover={(lvl) => setHoveredFloor(lvl)}
           />
 
@@ -257,7 +257,7 @@ function FloatingFloorHoverTag({ level, yBase }: { level: number; yBase: number 
             Pilot R.601
           </span>
         )}
-        <span className="text-[10px] text-blue-300 font-normal">Klik untuk masuk</span>
+        <span className="text-[10px] text-blue-300 font-normal">Klik 2x untuk masuk</span>
       </div>
     </Html>
   );

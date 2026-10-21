@@ -39,7 +39,7 @@ interface FstBuildingExteriorProps {
   floors: FloorModel[];
   isCutaway: boolean;
   hoveredFloor: number | null;
-  onFloorClick: (level: number) => void;
+  onFloorDoubleClick: (level: number) => void;
   onFloorHover: (level: number | null) => void;
 }
 
@@ -47,7 +47,7 @@ export const FstBuildingExterior: React.FC<FstBuildingExteriorProps> = ({
   floors,
   isCutaway,
   hoveredFloor,
-  onFloorClick,
+  onFloorDoubleClick,
   onFloorHover,
 }) => {
   const halfW = 32;
@@ -69,7 +69,7 @@ export const FstBuildingExterior: React.FC<FstBuildingExteriorProps> = ({
             <InteractiveFloorSlab
               floor={floor}
               isHovered={isHovered}
-              onClick={() => onFloorClick(floor.level)}
+              onDoubleClick={() => onFloorDoubleClick(floor.level)}
               onPointerOver={(e) => {
                 e.stopPropagation();
                 onFloorHover(floor.level);
@@ -124,13 +124,13 @@ export const FstBuildingExterior: React.FC<FstBuildingExteriorProps> = ({
 function InteractiveFloorSlab({
   floor,
   isHovered,
-  onClick,
+  onDoubleClick,
   onPointerOver,
   onPointerOut,
 }: {
   floor: FloorModel;
   isHovered: boolean;
-  onClick: () => void;
+  onDoubleClick: () => void;
   onPointerOver: (e: any) => void;
   onPointerOut: () => void;
 }) {
@@ -159,9 +159,9 @@ function InteractiveFloorSlab({
         position={[0, 0, 0]}
         receiveShadow
         castShadow
-        onClick={(e) => {
+        onDoubleClick={(e) => {
           e.stopPropagation();
-          onClick();
+          onDoubleClick();
         }}
         onPointerOver={onPointerOver}
         onPointerOut={onPointerOut}
@@ -1135,9 +1135,9 @@ function CourtyardCurvedCores() {
 
   return (
     <group>
-      {/* Menara Silinder Core Utara */}
+      {/* Menara Silinder Core Utara (Lengkungan Menghadap ke Void Atrium Selatan) */}
       <mesh position={[0, yCenter, 17.5]} castShadow receiveShadow>
-        <cylinderGeometry args={[4.4, 4.4, height, 32, 1, false, 0, Math.PI]} />
+        <cylinderGeometry args={[4.4, 4.4, height, 32, 1, false, Math.PI / 2, Math.PI]} />
         <meshStandardMaterial color={FST_COLORS.creamWall} roughness={0.75} />
       </mesh>
       {/* Roster Balok Kaca Buram Menara Utara */}
@@ -1151,15 +1151,15 @@ function CourtyardCurvedCores() {
           depthWrite={false}
         />
       </mesh>
-      {/* Lis Garis Merah Horizontal pada Silinder */}
-      <mesh position={[0, height - 0.15, 17.5]} rotation={[0, 0, 0]}>
-        <cylinderGeometry args={[4.46, 4.46, 0.28, 32, 1, false, 0, Math.PI]} />
+      {/* Lis Garis Merah Horizontal pada Silinder Utara */}
+      <mesh position={[0, height - 0.15, 17.5]}>
+        <cylinderGeometry args={[4.46, 4.46, 0.28, 32, 1, false, Math.PI / 2, Math.PI]} />
         <meshStandardMaterial color={FST_COLORS.coralRed} roughness={0.7} />
       </mesh>
 
-      {/* Menara Silinder Core Selatan */}
-      <mesh position={[0, yCenter, -17.5]} rotation={[0, Math.PI, 0]} castShadow receiveShadow>
-        <cylinderGeometry args={[4.4, 4.4, height, 32, 1, false, 0, Math.PI]} />
+      {/* Menara Silinder Core Selatan (Lengkungan Menghadap ke Void Atrium Utara) */}
+      <mesh position={[0, yCenter, -17.5]} castShadow receiveShadow>
+        <cylinderGeometry args={[4.4, 4.4, height, 32, 1, false, -Math.PI / 2, Math.PI]} />
         <meshStandardMaterial color={FST_COLORS.creamWall} roughness={0.75} />
       </mesh>
       {/* Roster Balok Kaca Buram Menara Selatan */}
@@ -1173,9 +1173,9 @@ function CourtyardCurvedCores() {
           depthWrite={false}
         />
       </mesh>
-      {/* Lis Garis Merah Horizontal pada Silinder */}
-      <mesh position={[0, height - 0.15, -17.5]} rotation={[0, Math.PI, 0]}>
-        <cylinderGeometry args={[4.46, 4.46, 0.28, 32, 1, false, 0, Math.PI]} />
+      {/* Lis Garis Merah Horizontal pada Silinder Selatan */}
+      <mesh position={[0, height - 0.15, -17.5]}>
+        <cylinderGeometry args={[4.46, 4.46, 0.28, 32, 1, false, -Math.PI / 2, Math.PI]} />
         <meshStandardMaterial color={FST_COLORS.coralRed} roughness={0.7} />
       </mesh>
     </group>
@@ -1571,52 +1571,52 @@ function FstRoofDomesAndSolar({
         </group>
       ))}
 
-      {/* 6. Susunan Panel Surya PV Biru Gelap Mengikuti Kemiringan Atap Limasan */}
-      {/* Array Panel Surya di Sayap Barat-Laut (Sisi Miring Utara) */}
-      <group position={[-15.0, 2.2, 26.45]} rotation={[-0.743, 0, 0]}>
+      {/* 6. Susunan Panel Surya PV Biru Gelap Mengikuti Kemiringan Atap Limasan (Menghadap Luar Sejajar Genteng) */}
+      {/* Array Panel Surya di Sayap Barat-Laut (Sisi Miring Luar Utara) */}
+      <group position={[-15.0, 2.25, 26.65]} rotation={[0.692, 0, 0]}>
         <mesh castShadow receiveShadow>
-          <boxGeometry args={[13.5, 0.12, 3.6]} />
-          <meshStandardMaterial color={FST_COLORS.solarBlue} roughness={0.2} metalness={0.6} />
+          <boxGeometry args={[13.5, 0.12, 3.5]} />
+          <meshStandardMaterial color={FST_COLORS.solarBlue} roughness={0.15} metalness={0.7} />
         </mesh>
-        <mesh position={[0, 0.08, 0]}>
-          <boxGeometry args={[13.6, 0.04, 3.7]} />
-          <meshStandardMaterial color={FST_COLORS.solarBorder} roughness={0.4} metalness={0.8} />
+        <mesh position={[0, 0.07, 0]}>
+          <boxGeometry args={[13.6, 0.04, 3.6]} />
+          <meshStandardMaterial color={FST_COLORS.solarBorder} roughness={0.3} metalness={0.9} />
         </mesh>
       </group>
 
-      {/* Array Panel Surya di Sayap Timur-Laut (Sisi Miring Utara) */}
-      <group position={[15.0, 2.2, 26.45]} rotation={[-0.743, 0, 0]}>
+      {/* Array Panel Surya di Sayap Timur-Laut (Sisi Miring Luar Utara) */}
+      <group position={[15.0, 2.25, 26.65]} rotation={[0.692, 0, 0]}>
         <mesh castShadow receiveShadow>
-          <boxGeometry args={[13.5, 0.12, 3.6]} />
-          <meshStandardMaterial color={FST_COLORS.solarBlue} roughness={0.2} metalness={0.6} />
+          <boxGeometry args={[13.5, 0.12, 3.5]} />
+          <meshStandardMaterial color={FST_COLORS.solarBlue} roughness={0.15} metalness={0.7} />
         </mesh>
-        <mesh position={[0, 0.08, 0]}>
-          <boxGeometry args={[13.6, 0.04, 3.7]} />
-          <meshStandardMaterial color={FST_COLORS.solarBorder} roughness={0.4} metalness={0.8} />
+        <mesh position={[0, 0.07, 0]}>
+          <boxGeometry args={[13.6, 0.04, 3.6]} />
+          <meshStandardMaterial color={FST_COLORS.solarBorder} roughness={0.3} metalness={0.9} />
         </mesh>
       </group>
 
-      {/* Array Panel Surya di Sayap Barat-Daya (Sisi Miring Selatan) */}
-      <group position={[-15.0, 2.2, -26.45]} rotation={[0.743, 0, 0]}>
+      {/* Array Panel Surya di Sayap Barat-Daya (Sisi Miring Luar Selatan) */}
+      <group position={[-15.0, 2.25, -26.65]} rotation={[-0.692, 0, 0]}>
         <mesh castShadow receiveShadow>
-          <boxGeometry args={[13.5, 0.12, 3.6]} />
-          <meshStandardMaterial color={FST_COLORS.solarBlue} roughness={0.2} metalness={0.6} />
+          <boxGeometry args={[13.5, 0.12, 3.5]} />
+          <meshStandardMaterial color={FST_COLORS.solarBlue} roughness={0.15} metalness={0.7} />
         </mesh>
-        <mesh position={[0, 0.08, 0]}>
-          <boxGeometry args={[13.6, 0.04, 3.7]} />
-          <meshStandardMaterial color={FST_COLORS.solarBorder} roughness={0.4} metalness={0.8} />
+        <mesh position={[0, 0.07, 0]}>
+          <boxGeometry args={[13.6, 0.04, 3.6]} />
+          <meshStandardMaterial color={FST_COLORS.solarBorder} roughness={0.3} metalness={0.9} />
         </mesh>
       </group>
 
-      {/* Array Panel Surya di Sayap Tenggara (Sisi Miring Selatan) */}
-      <group position={[15.0, 2.2, -26.45]} rotation={[0.743, 0, 0]}>
+      {/* Array Panel Surya di Sayap Tenggara (Sisi Miring Luar Selatan) */}
+      <group position={[15.0, 2.25, -26.65]} rotation={[-0.692, 0, 0]}>
         <mesh castShadow receiveShadow>
-          <boxGeometry args={[13.5, 0.12, 3.6]} />
-          <meshStandardMaterial color={FST_COLORS.solarBlue} roughness={0.2} metalness={0.6} />
+          <boxGeometry args={[13.5, 0.12, 3.5]} />
+          <meshStandardMaterial color={FST_COLORS.solarBlue} roughness={0.15} metalness={0.7} />
         </mesh>
-        <mesh position={[0, 0.08, 0]}>
-          <boxGeometry args={[13.6, 0.04, 3.7]} />
-          <meshStandardMaterial color={FST_COLORS.solarBorder} roughness={0.4} metalness={0.8} />
+        <mesh position={[0, 0.07, 0]}>
+          <boxGeometry args={[13.6, 0.04, 3.6]} />
+          <meshStandardMaterial color={FST_COLORS.solarBorder} roughness={0.3} metalness={0.9} />
         </mesh>
       </group>
 
@@ -1670,6 +1670,29 @@ function FstRoofDomesAndSolar({
         <mesh position={[0, 9.2, 0]}>
           <sphereGeometry args={[0.35, 16, 16]} />
           <meshStandardMaterial color={FST_COLORS.finialGold} roughness={0.2} metalness={0.9} />
+        </mesh>
+      </group>
+
+      {/* 8. Penutup Atap Silinder Core Menara Utara & Selatan (Rapi Penuh dari Pandangan Atas) */}
+      <group position={[0, 0.25, 17.5]}>
+        <mesh castShadow receiveShadow>
+          <cylinderGeometry args={[4.45, 4.45, 0.5, 32, 1, false, Math.PI / 2, Math.PI]} />
+          <meshStandardMaterial color={FST_COLORS.creamWall} roughness={0.8} />
+        </mesh>
+        <mesh position={[0, 0.28, 0]}>
+          <cylinderGeometry args={[4.52, 4.52, 0.1, 32, 1, false, Math.PI / 2, Math.PI]} />
+          <meshStandardMaterial color={FST_COLORS.coralRed} roughness={0.7} />
+        </mesh>
+      </group>
+
+      <group position={[0, 0.25, -17.5]}>
+        <mesh castShadow receiveShadow>
+          <cylinderGeometry args={[4.45, 4.45, 0.5, 32, 1, false, -Math.PI / 2, Math.PI]} />
+          <meshStandardMaterial color={FST_COLORS.creamWall} roughness={0.8} />
+        </mesh>
+        <mesh position={[0, 0.28, 0]}>
+          <cylinderGeometry args={[4.52, 4.52, 0.1, 32, 1, false, -Math.PI / 2, Math.PI]} />
+          <meshStandardMaterial color={FST_COLORS.coralRed} roughness={0.7} />
         </mesh>
       </group>
     </group>
