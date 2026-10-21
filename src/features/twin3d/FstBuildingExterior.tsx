@@ -14,8 +14,8 @@ export const FST_COLORS = {
   coralRedDark: "#BD3E3A",    // Lis bingkai fasad merah pekat
   roofTile: "#B24A29",        // Genteng tanah liat terakota Indonesia
   roofRidge: "#8E361A",       // Nok bubungan genteng terakota
-  solarBlue: "#1E3A8A",       // Panel surya PV biru pekat
-  solarBorder: "#94A3B8",     // Bingkai aluminium panel surya
+  solarBlue: "#0B192C",       // Panel surya PV monokristalin biru gelap pekat
+  solarBorder: "#CBD5E1",     // Bingkai aluminium perak cerah panel surya
   domeGreen: "#2E7D32",       // Kubah hijau ikonik FST
   finialGold: "#F59E0B",      // Jarum bulan sabit emas di puncak kubah
   canopyYellow: "#FBBF24",    // Kanopi lobi masuk kuning cerah (Foto 1 & 3)
@@ -1364,6 +1364,117 @@ function createEaveFasciaGeometry(
   return BufferGeometryUtils.mergeGeometries(boxes, false);
 }
 
+/**
+ * Pembuat tekstur kanvas sel fotovoltaik (PV) monokristalin otentik FST
+ * - Bingkai aluminium ekstrusi per modul
+ * - Sel silikon biru gelap pekat anti-reflektif
+ * - Garis busbar perak tipis dan divider wafer
+ */
+function createSolarTexture(cols: number, rows: number): THREE.CanvasTexture | null {
+  if (typeof document === "undefined") return null;
+  const canvas = document.createElement("canvas");
+  const isRotated = cols < rows;
+  canvas.width = isRotated ? 512 : 1024;
+  canvas.height = isRotated ? 2048 : 512;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+
+  // Background sel silikon biru gelap pekat
+  ctx.fillStyle = "#0A1728";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const padX = canvas.width / cols;
+  const padY = canvas.height / rows;
+
+  for (let c = 0; c < cols; c++) {
+    for (let r = 0; r < rows; r++) {
+      const x = c * padX;
+      const y = r * padY;
+
+      // Bingkai aluminium per modul PV
+      ctx.fillStyle = "#94A3B8";
+      ctx.fillRect(x, y, padX, padY);
+
+      // Area wafer silikon
+      const m = isRotated ? 1.5 : 2;
+      ctx.fillStyle = "#0D213A";
+      ctx.fillRect(x + m, y + m, padX - m * 2, padY - m * 2);
+
+      // Sub-wafer sel silikon dengan busbar perak
+      const subCols = isRotated ? 2 : 2;
+      const subRows = isRotated ? 3 : 4;
+      const sw = (padX - m * 2) / subCols;
+      const sh = (padY - m * 2) / subRows;
+
+      for (let sc = 0; sc < subCols; sc++) {
+        for (let sr = 0; sr < subRows; sr++) {
+          const sx = x + m + sc * sw;
+          const sy = y + m + sr * sh;
+
+          // Sel silikon PV
+          ctx.fillStyle = "#122A48";
+          ctx.fillRect(sx + 0.5, sy + 0.5, sw - 1, sh - 1);
+
+          // Garis busbar perak reflektif
+          ctx.fillStyle = "rgba(226, 232, 240, 0.4)";
+          ctx.fillRect(sx + sw * 0.33, sy + 0.5, 1, sh - 1);
+          ctx.fillRect(sx + sw * 0.66, sy + 0.5, 1, sh - 1);
+        }
+      }
+    }
+  }
+
+  // Border bingkai luar array
+  ctx.strokeStyle = "#CBD5E1";
+  ctx.lineWidth = 3;
+  ctx.strokeRect(0, 0, canvas.width, canvas.height);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.ClampToEdgeWrapping;
+  tex.wrapT = THREE.ClampToEdgeWrapping;
+  return tex;
+}
+
+/**
+ * Komponen Array Panel Surya Fotovoltaik (PV) Otentik FST
+ * - Sasis rail aluminium di bawah modul
+ * - Permukaan sel fotovoltaik realistis
+ */
+function SolarPanelArray({
+  width,
+  length,
+  cols = 12,
+  rows = 4,
+}: {
+  width: number;
+  length: number;
+  cols?: number;
+  rows?: number;
+}) {
+  const solarTexture = useMemo(() => createSolarTexture(cols, rows), [cols, rows]);
+
+  return (
+    <group>
+      {/* 1. Sasis Mounting Rail Aluminium (Tebal 0.04m) */}
+      <mesh position={[0, -0.015, 0]} castShadow receiveShadow>
+        <boxGeometry args={[width + 0.06, 0.03, length + 0.06]} />
+        <meshStandardMaterial color={FST_COLORS.solarBorder} roughness={0.3} metalness={0.85} />
+      </mesh>
+
+      {/* 2. Permukaan Panel PV Sel Surya dengan Tekstur Grid Fotovoltaik */}
+      <mesh position={[0, 0.015, 0]} castShadow receiveShadow>
+        <boxGeometry args={[width, 0.02, length]} />
+        <meshStandardMaterial
+          map={solarTexture || undefined}
+          color={solarTexture ? "#FFFFFF" : FST_COLORS.solarBlue}
+          roughness={0.18}
+          metalness={0.8}
+        />
+      </mesh>
+    </group>
+  );
+}
+
 // =========================================================================
 // Struktur Atap Lengkap: Genteng Terakota Piramida & Limasan 4 Sisi,
 // Panel Surya, 4 Menara Limasan, dan 2 Kubah Hijau Ikonik Gedung FST
@@ -1571,53 +1682,38 @@ function FstRoofDomesAndSolar({
         </group>
       ))}
 
-      {/* 6. Susunan Panel Surya PV Biru Gelap Mengikuti Kemiringan Atap Limasan (Menghadap Luar Sejajar Genteng) */}
-      {/* Array Panel Surya di Sayap Barat-Laut (Sisi Miring Luar Utara) */}
-      <group position={[-15.0, 2.25, 26.65]} rotation={[0.692, 0, 0]}>
-        <mesh castShadow receiveShadow>
-          <boxGeometry args={[13.5, 0.12, 3.5]} />
-          <meshStandardMaterial color={FST_COLORS.solarBlue} roughness={0.15} metalness={0.7} />
-        </mesh>
-        <mesh position={[0, 0.07, 0]}>
-          <boxGeometry args={[13.6, 0.04, 3.6]} />
-          <meshStandardMaterial color={FST_COLORS.solarBorder} roughness={0.3} metalness={0.9} />
-        </mesh>
+      {/* 6. Susunan Panel Surya PV Monokristalin Realistis Mengikuti Kemiringan Atap Genteng */}
+      {/* Sudut kemiringan presisi genteng: arctan(3.4 / 4.1) = 0.69233 rad = 39.67 deg */}
+      {/* A. Sayap Utara & Selatan (Depan & Belakang) */}
+      {/* Sayap Barat-Laut (Sisi Miring Luar Utara) */}
+      <group position={[-15.0, 2.22, 26.65]} rotation={[0.69233, 0, 0]}>
+        <SolarPanelArray width={8.4} length={2.6} cols={12} rows={4} />
       </group>
 
-      {/* Array Panel Surya di Sayap Timur-Laut (Sisi Miring Luar Utara) */}
-      <group position={[15.0, 2.25, 26.65]} rotation={[0.692, 0, 0]}>
-        <mesh castShadow receiveShadow>
-          <boxGeometry args={[13.5, 0.12, 3.5]} />
-          <meshStandardMaterial color={FST_COLORS.solarBlue} roughness={0.15} metalness={0.7} />
-        </mesh>
-        <mesh position={[0, 0.07, 0]}>
-          <boxGeometry args={[13.6, 0.04, 3.6]} />
-          <meshStandardMaterial color={FST_COLORS.solarBorder} roughness={0.3} metalness={0.9} />
-        </mesh>
+      {/* Sayap Timur-Laut (Sisi Miring Luar Utara) */}
+      <group position={[15.0, 2.22, 26.65]} rotation={[0.69233, 0, 0]}>
+        <SolarPanelArray width={8.4} length={2.6} cols={12} rows={4} />
       </group>
 
-      {/* Array Panel Surya di Sayap Barat-Daya (Sisi Miring Luar Selatan) */}
-      <group position={[-15.0, 2.25, -26.65]} rotation={[-0.692, 0, 0]}>
-        <mesh castShadow receiveShadow>
-          <boxGeometry args={[13.5, 0.12, 3.5]} />
-          <meshStandardMaterial color={FST_COLORS.solarBlue} roughness={0.15} metalness={0.7} />
-        </mesh>
-        <mesh position={[0, 0.07, 0]}>
-          <boxGeometry args={[13.6, 0.04, 3.6]} />
-          <meshStandardMaterial color={FST_COLORS.solarBorder} roughness={0.3} metalness={0.9} />
-        </mesh>
+      {/* Sayap Barat-Daya (Sisi Miring Luar Selatan) */}
+      <group position={[-15.0, 2.22, -26.65]} rotation={[-0.69233, 0, 0]}>
+        <SolarPanelArray width={8.4} length={2.6} cols={12} rows={4} />
       </group>
 
-      {/* Array Panel Surya di Sayap Tenggara (Sisi Miring Luar Selatan) */}
-      <group position={[15.0, 2.25, -26.65]} rotation={[-0.692, 0, 0]}>
-        <mesh castShadow receiveShadow>
-          <boxGeometry args={[13.5, 0.12, 3.5]} />
-          <meshStandardMaterial color={FST_COLORS.solarBlue} roughness={0.15} metalness={0.7} />
-        </mesh>
-        <mesh position={[0, 0.07, 0]}>
-          <boxGeometry args={[13.6, 0.04, 3.6]} />
-          <meshStandardMaterial color={FST_COLORS.solarBorder} roughness={0.3} metalness={0.9} />
-        </mesh>
+      {/* Sayap Tenggara (Sisi Miring Luar Selatan) */}
+      <group position={[15.0, 2.22, -26.65]} rotation={[-0.69233, 0, 0]}>
+        <SolarPanelArray width={8.4} length={2.6} cols={12} rows={4} />
+      </group>
+
+      {/* B. Sayap Samping Kiri & Kanan (Kedua Sisi Barat & Timur Sesuai Permintaan User) */}
+      {/* Sayap Samping Kiri / Barat (Sisi Miring Luar Barat) */}
+      <group position={[-30.45, 2.22, 0]} rotation={[0, 0, 0.69233]}>
+        <SolarPanelArray width={2.6} length={14.0} cols={4} rows={20} />
+      </group>
+
+      {/* Sayap Samping Kanan / Timur (Sisi Miring Luar Timur) */}
+      <group position={[30.45, 2.22, 0]} rotation={[0, 0, -0.69233]}>
+        <SolarPanelArray width={2.6} length={14.0} cols={4} rows={20} />
       </group>
 
       {/* 7. 2 Kubah Hijau Ikonik FST (Menara Utara & Selatan) */}
