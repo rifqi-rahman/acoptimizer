@@ -65,6 +65,8 @@ export const SidePanel: React.FC<SidePanelProps> = ({ room, currentFloor, floors
         ? "Ruang Fasilitas / Teknis"
         : room.kind === "classroom"
         ? "Ruang Kelas"
+        : room.kind === "theater"
+        ? "Ruang Teater / Seminar"
         : room.kind === "office"
         ? "Ruang Dosen & Staf"
         : room.kind === "core"

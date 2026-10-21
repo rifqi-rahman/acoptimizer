@@ -75,20 +75,22 @@ export function generateFloorModel(
     });
   };
 
-  // Sudut-sudut Gedung (Nama lokasi bersih tanpa singkatan arah mata angin):
-  // Pojok Fasilitas 1
-  addRoom(`${level}-FAS1`, `Ruang Fasilitas 1`, "service", -halfW, -halfW + rDepth, halfD - rDepth, halfD, false);
+  // Sudut-sudut Gedung (Menara Sudut Mencuat Lebih Besar):
+  // Sisi Kiri (Barat): Toilet + Tangga Darurat di setiap sudut
+  // Pojok Barat Laut (NW): Toilet 1 & Tangga Darurat 1
+  addRoom(`${level}-WC1`, `Toilet NW`, "toilet", -halfW, -halfW + rDepth, halfD - rDepth, halfD - 3.5, false);
+  addRoom(`${level}-TD1`, `Tangga Darurat NW`, "stairs", -halfW, -halfW + rDepth, halfD - 3.5, halfD, false);
 
-  // Pojok Timur Laut: Toilet 1 (bawah) & Tangga Darurat 1 (slot kecil di atas toilet)
-  addRoom(`${level}-WC1`, `Toilet 1`, "toilet", halfW - rDepth, halfW, halfD - rDepth, halfD - 3, false);
-  addRoom(`${level}-TD1`, `Tangga Darurat 1`, "stairs", halfW - rDepth, halfW, halfD - 3, halfD, false);
+  // Pojok Barat Daya (SW): Toilet 2 & Tangga Darurat 2
+  addRoom(`${level}-WC2`, `Toilet SW`, "toilet", -halfW, -halfW + rDepth, -halfD, -halfD + 4.5, false);
+  addRoom(`${level}-TD2`, `Tangga Darurat SW`, "stairs", -halfW, -halfW + rDepth, -halfD + 4.5, -halfD + rDepth, false);
 
-  // Pojok Barat Daya: Toilet 2 (bawah) & Tangga Darurat 2 (slot kecil di atas toilet, di bawah R.x13)
-  addRoom(`${level}-WC2`, `Toilet 2`, "toilet", -halfW, -halfW + rDepth, -halfD, -halfD + 5, false);
-  addRoom(`${level}-TD2`, `Tangga Darurat 2`, "stairs", -halfW, -halfW + rDepth, -halfD + 5, -halfD + rDepth, false);
+  // Sisi Kanan (Timur): Ruang Teater / Seminar di setiap sudut
+  // Pojok Timur Laut (NE): Ruang Teater 1
+  addRoom(`${level}-TR1`, `Ruang Teater 1`, "theater", halfW - rDepth, halfW, halfD - rDepth, halfD, true);
 
-  // Pojok Fasilitas 2
-  addRoom(`${level}-FAS2`, `Ruang Fasilitas 2`, "service", halfW - rDepth, halfW, -halfD, -halfD + rDepth, false);
+  // Pojok Tenggara (SE): Ruang Teater 2
+  addRoom(`${level}-TR2`, `Ruang Teater 2`, "theater", halfW - rDepth, halfW, -halfD, -halfD + rDepth, true);
 
   // Core Utara (Lounge + Tangga Imperial + 2 Lift)
   addRoom(
@@ -148,10 +150,10 @@ export function generateFloorModel(
     addRoom(slot, `Ruang ${roomNum}`, level <= 2 ? "office" : "classroom", xMin, xMax, -halfD, -halfD + rDepth);
   }
 
-  // Sayap Barat: 5 Ruangan berjejer dari Selatan ke Utara
+  // Sayap Barat: 6 Ruang Kelas berjejer dari Selatan ke Utara (sesuai spesifikasi pengguna)
   const bSpan = (halfD - rDepth) - (-halfD + rDepth);
-  const bRoomH = bSpan / 5;
-  for (let i = 0; i < 5; i++) {
+  const bRoomH = bSpan / 6;
+  for (let i = 0; i < 6; i++) {
     const yMin = -halfD + rDepth + i * bRoomH;
     const yMax = yMin + bRoomH;
     const slot = `${level}-B${i + 1}`;
@@ -159,12 +161,12 @@ export function generateFloorModel(
     addRoom(slot, `Ruang ${roomNum}`, level <= 2 ? "meeting" : "classroom", -halfW, -halfW + rDepth, yMin, yMax);
   }
 
-  // Sayap Timur: 5 Ruangan berjejer dari Selatan ke Utara
-  for (let i = 0; i < 5; i++) {
+  // Sayap Timur: 6 Ruang Kelas berjejer dari Selatan ke Utara (sesuai spesifikasi pengguna)
+  for (let i = 0; i < 6; i++) {
     const yMin = -halfD + rDepth + i * bRoomH;
     const yMax = yMin + bRoomH;
     const slot = `${level}-T${i + 1}`;
-    const roomNum = `${level}${i + 18}`;
+    const roomNum = `${level}${i + 19}`;
     addRoom(slot, `Ruang ${roomNum}`, level <= 2 ? "office" : "classroom", halfW - rDepth, halfW, yMin, yMax);
   }
 
