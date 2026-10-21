@@ -159,7 +159,7 @@ export const AutomationsModal: React.FC = () => {
           </span>
           <button
             onClick={() => openModal(null)}
-            className="px-6 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition shadow-sm active:scale-95"
+            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-md shadow-blue-500/25 active:scale-95 cursor-pointer"
           >
             Tutup
           </button>

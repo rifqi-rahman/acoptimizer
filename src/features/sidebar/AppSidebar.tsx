@@ -231,15 +231,17 @@ function NavItem({
         onClick={onClick}
         className={`w-full h-10 flex items-center rounded-xl text-xs font-semibold transition-colors duration-150 cursor-pointer overflow-hidden ${
           isActive
-            ? "bg-slate-900 text-white shadow-sm"
-            : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+            ? "bg-blue-600 text-white shadow-md shadow-blue-500/25"
+            : "text-slate-600 hover:text-blue-600 hover:bg-blue-50/70"
         }`}
       >
         {/* Wadah Icon: Fixed w-10 h-10, Posisi tetap dan tidak pernah bergeser */}
         <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
           <span
             className={
-              isActive ? "text-white" : "text-slate-500 group-hover:text-slate-800"
+              isActive
+                ? "text-white"
+                : "text-slate-400 group-hover:text-blue-600 transition-colors"
             }
           >
             {icon}
@@ -257,7 +259,9 @@ function NavItem({
           {badge && (
             <span
               className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 mr-1 ${
-                badgeColor === "blue"
+                isActive
+                  ? "bg-white/25 text-white"
+                  : badgeColor === "blue"
                   ? "bg-blue-100 text-blue-700"
                   : badgeColor === "green"
                   ? "bg-emerald-100 text-emerald-700"

@@ -14,8 +14,8 @@ export const FloorRail: React.FC = () => {
           onClick={resetToBuilding}
           className={`relative flex items-center justify-center w-9 h-9 rounded-full text-xs font-bold transition-all duration-200 ${
             mode === "building"
-              ? "bg-slate-900 text-white shadow-md scale-105"
-              : "text-slate-700 hover:bg-slate-100"
+              ? "bg-blue-600 text-white shadow-md shadow-blue-500/25 scale-105"
+              : "text-slate-700 hover:bg-blue-50 hover:text-blue-600"
           } peer cursor-pointer`}
         >
           <Home className="w-4 h-4" />
@@ -42,7 +42,7 @@ export const FloorRail: React.FC = () => {
               className={`relative flex items-center justify-center w-9 h-9 rounded-full text-[11px] font-bold tracking-tight transition-all duration-200 ${
                 isSelected
                   ? "bg-blue-600 text-white shadow-md scale-105"
-                  : "text-slate-700 hover:bg-slate-100"
+                  : "text-slate-700 hover:bg-blue-50 hover:text-blue-600"
               } peer cursor-pointer`}
             >
               <span>LT.{floor}</span>

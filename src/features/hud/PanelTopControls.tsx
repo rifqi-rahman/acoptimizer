@@ -30,8 +30,8 @@ export const PanelTopControls: React.FC = () => {
           onClick={() => is2D && toggle2D()}
           className={`px-3 py-1 rounded-full transition-all cursor-pointer ${
             !is2D
-              ? "bg-slate-900 text-white shadow-sm"
-              : "text-slate-600 hover:text-slate-900"
+              ? "bg-blue-600 text-white shadow-sm shadow-blue-500/20"
+              : "text-slate-600 hover:text-blue-600 hover:bg-blue-50/60"
           }`}
         >
           3D
@@ -40,8 +40,8 @@ export const PanelTopControls: React.FC = () => {
           onClick={() => !is2D && toggle2D()}
           className={`px-3 py-1 rounded-full transition-all cursor-pointer ${
             is2D
-              ? "bg-slate-900 text-white shadow-sm"
-              : "text-slate-600 hover:text-slate-900"
+              ? "bg-blue-600 text-white shadow-sm shadow-blue-500/20"
+              : "text-slate-600 hover:text-blue-600 hover:bg-blue-50/60"
           }`}
         >
           2D
