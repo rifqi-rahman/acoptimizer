@@ -111,6 +111,8 @@ function TwinCameraController({ floors }: { floors: FloorModel[] }) {
 }
 
 export const TwinCanvas: React.FC<TwinCanvasProps> = ({ floors }) => {
+  const { mode } = useViewStore();
+
   return (
     <div className="w-full h-full relative cursor-grab active:cursor-grabbing bg-[#E5EDF4]">
       <Canvas
@@ -140,13 +142,15 @@ export const TwinCanvas: React.FC<TwinCanvasProps> = ({ floors }) => {
 
         <Suspense fallback={null}>
           <Building3D floors={floors} />
-          <ContactShadows
-            position={[0, -12.18, 0]}
-            opacity={0.4}
-            scale={120}
-            blur={2.2}
-            far={18}
-          />
+          {mode === "building" && (
+            <ContactShadows
+              position={[0, -12.18, 0]}
+              opacity={0.4}
+              scale={120}
+              blur={2.2}
+              far={18}
+            />
+          )}
           <Environment preset="city" />
         </Suspense>
 

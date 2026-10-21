@@ -1705,14 +1705,24 @@ function FstRoofDomesAndSolar({
         <SolarPanelArray width={8.4} length={2.6} cols={12} rows={4} />
       </group>
 
-      {/* B. Sayap Samping Kiri & Kanan (Kedua Sisi Barat & Timur Sesuai Permintaan User) */}
-      {/* Sayap Samping Kiri / Barat (Sisi Miring Luar Barat) */}
+      {/* B. Sayap Samping Kiri & Kanan (Lengkap di Kedua Sisi Miring Genteng: Luar & Dalam) */}
+      {/* 1. Sayap Samping Kiri / Barat */}
+      {/* Sisi Miring Luar (Menghadap Barat) */}
       <group position={[-30.45, 2.22, 0]} rotation={[0, 0, 0.69233]}>
         <SolarPanelArray width={2.6} length={14.0} cols={4} rows={20} />
       </group>
+      {/* Sisi Miring Dalam (Menghadap Void/Timur) */}
+      <group position={[-26.35, 2.22, 0]} rotation={[0, 0, -0.69233]}>
+        <SolarPanelArray width={2.6} length={14.0} cols={4} rows={20} />
+      </group>
 
-      {/* Sayap Samping Kanan / Timur (Sisi Miring Luar Timur) */}
+      {/* 2. Sayap Samping Kanan / Timur */}
+      {/* Sisi Miring Luar (Menghadap Timur) */}
       <group position={[30.45, 2.22, 0]} rotation={[0, 0, -0.69233]}>
+        <SolarPanelArray width={2.6} length={14.0} cols={4} rows={20} />
+      </group>
+      {/* Sisi Miring Dalam (Menghadap Void/Barat) */}
+      <group position={[26.35, 2.22, 0]} rotation={[0, 0, 0.69233]}>
         <SolarPanelArray width={2.6} length={14.0} cols={4} rows={20} />
       </group>
 

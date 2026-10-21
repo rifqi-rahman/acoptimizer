@@ -28,16 +28,16 @@ export const Building3D: React.FC<Building3DProps> = ({ floors }) => {
 
   return (
     <group position={[0, -12, 0]}>
-      {/* 1. Lingkungan Kampus Sekitar: Jalan Aspal, Area Parkir Berkanopi & Pohon Tropis */}
-      <GroundCampusEnvironment />
-
-      {/* 2. Taman & Pohon Cemara di Tengah Void Atrium (Terlihat dari Semua Lantai) */}
-      <AtriumCourtyardGarden />
-
-      {/* 3. TAMPILAN 3D UTAMA */}
+      {/* TAMPILAN 3D UTAMA */}
       {mode === "building" ? (
         <group>
-          {/* Tinjauan Gedung FST Utuh dengan Fasad Otentik, Kubah Hijau & Panel Surya */}
+          {/* 1. Lingkungan Kampus Sekitar: Jalan Aspal, Area Parkir Berkanopi & Pohon Tropis (Hanya di Mode Gedung) */}
+          <GroundCampusEnvironment />
+
+          {/* 2. Taman & Pohon Cemara di Tengah Void Atrium (Hanya di Mode Gedung) */}
+          <AtriumCourtyardGarden />
+
+          {/* 3. Tinjauan Gedung FST Utuh dengan Fasad Otentik, Kubah Hijau & Panel Surya */}
           <FstBuildingExterior
             floors={floors}
             isCutaway={isCutaway}
@@ -56,6 +56,7 @@ export const Building3D: React.FC<Building3DProps> = ({ floors }) => {
         </group>
       ) : (
         /* Mode Lantai & Ruang: Tampilan Denah Potongan 3D (Cutaway) Interaktif */
+        /* Objek lantai 1 & ground disembunyikan total, hanya tersisa 1 lantai yang mengambang */
         <group position={[0, (selectedFloor - 1) * 4.6, 0]}>
           <Floor3DCutaway floor={currentFloor} onRoomSelect={(slotId) => selectRoom(slotId)} />
         </group>
