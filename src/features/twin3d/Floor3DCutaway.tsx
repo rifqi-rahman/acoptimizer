@@ -80,9 +80,11 @@ export const Floor3DCutaway: React.FC<Floor3DCutawayProps> = ({ floor, onRoomSel
 };
 
 // =========================================================================
-// 1. Pelat Lantai Dasar dengan Void Atrium
+// 1. Pelat Lantai Dasar dengan Void Atrium & Potongan Datar Setengah Lingkaran
+// Sisi Utara & Selatan Menghadap ke Void (Lokasi Tangga Imperial & 2 Lift)
 // =========================================================================
 function FloorCutawayBase({ floor }: { floor: FloorModel }) {
+  // Pelat Utama dengan Lubang Void Persegi
   const shape = useMemo(() => {
     const s = new THREE.Shape();
     const [first, ...rest] = floor.outerPolygon;
@@ -100,16 +102,61 @@ function FloorCutawayBase({ floor }: { floor: FloorModel }) {
     return s;
   }, [floor]);
 
+  // Potongan Datar Setengah Lingkaran Lantai Sisi Utara (Menghadap Void Atrium)
+  // Menjorok dari Z = 17.0 ke Z = 12.6, radius 4.4m
+  const northSlabShape = useMemo(() => {
+    const s = new THREE.Shape();
+    s.moveTo(-4.4, -17.0);
+    s.absarc(0, -17.0, 4.4, Math.PI, 0, true);
+    s.closePath();
+    return s;
+  }, []);
+
+  // Potongan Datar Setengah Lingkaran Lantai Sisi Selatan (Menghadap Void Atrium)
+  // Menjorok dari Z = -17.0 ke Z = -12.6, radius 4.4m
+  const southSlabShape = useMemo(() => {
+    const s = new THREE.Shape();
+    s.moveTo(-4.4, 17.0);
+    s.absarc(0, 17.0, 4.4, Math.PI, 2 * Math.PI, false);
+    s.closePath();
+    return s;
+  }, []);
+
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]} receiveShadow>
-      <extrudeGeometry
-        args={[
-          shape,
-          { depth: 0.4, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05 },
-        ]}
-      />
-      <meshStandardMaterial color="#F8FAFC" roughness={0.85} />
-    </mesh>
+    <group rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]}>
+      {/* 1. Pelat Lantai Utama dengan Lubang Void */}
+      <mesh receiveShadow>
+        <extrudeGeometry
+          args={[
+            shape,
+            { depth: 0.4, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05 },
+          ]}
+        />
+        <meshStandardMaterial color="#F8FAFC" roughness={0.85} />
+      </mesh>
+
+      {/* 2. Potongan Datar Setengah Lingkaran Sisi Utara (Bordes Tangga/Lift Core Utara) */}
+      <mesh receiveShadow>
+        <extrudeGeometry
+          args={[
+            northSlabShape,
+            { depth: 0.4, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05 },
+          ]}
+        />
+        <meshStandardMaterial color="#F8FAFC" roughness={0.85} />
+      </mesh>
+
+      {/* 3. Potongan Datar Setengah Lingkaran Sisi Selatan (Bordes Tangga/Lift Core Selatan) */}
+      <mesh receiveShadow>
+        <extrudeGeometry
+          args={[
+            southSlabShape,
+            { depth: 0.4, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05 },
+          ]}
+        />
+        <meshStandardMaterial color="#F8FAFC" roughness={0.85} />
+      </mesh>
+    </group>
   );
 }
 
@@ -166,7 +213,8 @@ function CutawayPerimeterWalls() {
 }
 
 // =========================================================================
-// 3. Selasar Koridor Void Melingkar dengan Tanaman Gantung
+// 3. Selasar Koridor Void Melingkar dengan Tanaman Gantung &
+// Dinding Melengkung Setengah Lingkaran Mengelilingi Core Tangga Utara & Selatan
 // =========================================================================
 function AtriumCutawayBalcony() {
   const parapetH = 1.15;
@@ -175,15 +223,28 @@ function AtriumCutawayBalcony() {
 
   return (
     <group>
-      {/* Dinding Pembatas Void */}
-      <mesh position={[0, parapetH / 2, voidHalfD]} castShadow receiveShadow>
-        <boxGeometry args={[voidHalfW * 2, parapetH, 0.18]} />
+      {/* A. Dinding Lurus Pembatas Void (Terbuka di Tengah x in [-4.4, 4.4] untuk Akses Core) */}
+      {/* Sisi Utara: Sayap Kiri (x in [-21, -4.4]) & Sayap Kanan (x in [4.4, 21]) */}
+      <mesh position={[-12.7, parapetH / 2, voidHalfD]} castShadow receiveShadow>
+        <boxGeometry args={[16.6, parapetH, 0.18]} />
         <meshStandardMaterial color={FST_COLORS.creamWall} roughness={0.8} />
       </mesh>
-      <mesh position={[0, parapetH / 2, -voidHalfD]} castShadow receiveShadow>
-        <boxGeometry args={[voidHalfW * 2, parapetH, 0.18]} />
+      <mesh position={[12.7, parapetH / 2, voidHalfD]} castShadow receiveShadow>
+        <boxGeometry args={[16.6, parapetH, 0.18]} />
         <meshStandardMaterial color={FST_COLORS.creamWall} roughness={0.8} />
       </mesh>
+
+      {/* Sisi Selatan: Sayap Kiri & Sayap Kanan */}
+      <mesh position={[-12.7, parapetH / 2, -voidHalfD]} castShadow receiveShadow>
+        <boxGeometry args={[16.6, parapetH, 0.18]} />
+        <meshStandardMaterial color={FST_COLORS.creamWall} roughness={0.8} />
+      </mesh>
+      <mesh position={[12.7, parapetH / 2, -voidHalfD]} castShadow receiveShadow>
+        <boxGeometry args={[16.6, parapetH, 0.18]} />
+        <meshStandardMaterial color={FST_COLORS.creamWall} roughness={0.8} />
+      </mesh>
+
+      {/* Sisi Timur & Barat: Dinding Lurus Penuh */}
       <mesh position={[voidHalfW, parapetH / 2, 0]} castShadow receiveShadow>
         <boxGeometry args={[0.18, parapetH, voidHalfD * 2]} />
         <meshStandardMaterial color={FST_COLORS.creamWall} roughness={0.8} />
@@ -193,23 +254,84 @@ function AtriumCutawayBalcony() {
         <meshStandardMaterial color={FST_COLORS.creamWall} roughness={0.8} />
       </mesh>
 
-      {/* Lis Merah & Tanaman Gantung */}
+      {/* B. Dinding Setengah Lingkaran Melengkung Mengelilingi Core Tangga/Lift Menghadap Void */}
+      {/* 1. Silinder Setengah Lingkaran Core Utara (Menjorok ke arah Z = 12.6) */}
+      <mesh position={[0, parapetH / 2, voidHalfD]} castShadow receiveShadow>
+        <cylinderGeometry args={[4.4, 4.4, parapetH, 32, 1, false, Math.PI / 2, Math.PI]} />
+        <meshStandardMaterial color={FST_COLORS.creamWall} roughness={0.75} />
+      </mesh>
+      {/* Lis Garis Merah Coral pada Silinder Utara */}
       <mesh position={[0, parapetH + 0.04, voidHalfD]}>
-        <boxGeometry args={[voidHalfW * 2 + 0.2, 0.08, 0.25]} />
+        <cylinderGeometry args={[4.46, 4.46, 0.08, 32, 1, false, Math.PI / 2, Math.PI]} />
         <meshStandardMaterial color={FST_COLORS.coralRed} roughness={0.7} />
       </mesh>
+      {/* Roster Balok Kaca Buram pada Silinder Utara */}
+      <mesh position={[0, parapetH / 2, voidHalfD]}>
+        <cylinderGeometry args={[4.38, 4.38, 0.55, 32, 1, false, Math.PI / 2, Math.PI]} />
+        <meshStandardMaterial
+          color={FST_COLORS.glassBlock}
+          transparent
+          opacity={0.65}
+          roughness={0.3}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* 2. Silinder Setengah Lingkaran Core Selatan (Menjorok ke arah Z = -12.6) */}
+      <mesh position={[0, parapetH / 2, -voidHalfD]} castShadow receiveShadow>
+        <cylinderGeometry args={[4.4, 4.4, parapetH, 32, 1, false, -Math.PI / 2, Math.PI]} />
+        <meshStandardMaterial color={FST_COLORS.creamWall} roughness={0.75} />
+      </mesh>
+      {/* Lis Garis Merah Coral pada Silinder Selatan */}
       <mesh position={[0, parapetH + 0.04, -voidHalfD]}>
-        <boxGeometry args={[voidHalfW * 2 + 0.2, 0.08, 0.25]} />
+        <cylinderGeometry args={[4.46, 4.46, 0.08, 32, 1, false, -Math.PI / 2, Math.PI]} />
+        <meshStandardMaterial color={FST_COLORS.coralRed} roughness={0.7} />
+      </mesh>
+      {/* Roster Balok Kaca Buram pada Silinder Selatan */}
+      <mesh position={[0, parapetH / 2, -voidHalfD]}>
+        <cylinderGeometry args={[4.38, 4.38, 0.55, 32, 1, false, -Math.PI / 2, Math.PI]} />
+        <meshStandardMaterial
+          color={FST_COLORS.glassBlock}
+          transparent
+          opacity={0.65}
+          roughness={0.3}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* C. Lis Merah & Tanaman Gantung di Dinding Lurus */}
+      <mesh position={[-12.7, parapetH + 0.04, voidHalfD]}>
+        <boxGeometry args={[16.8, 0.08, 0.25]} />
+        <meshStandardMaterial color={FST_COLORS.coralRed} roughness={0.7} />
+      </mesh>
+      <mesh position={[12.7, parapetH + 0.04, voidHalfD]}>
+        <boxGeometry args={[16.8, 0.08, 0.25]} />
+        <meshStandardMaterial color={FST_COLORS.coralRed} roughness={0.7} />
+      </mesh>
+      <mesh position={[-12.7, parapetH + 0.04, -voidHalfD]}>
+        <boxGeometry args={[16.8, 0.08, 0.25]} />
+        <meshStandardMaterial color={FST_COLORS.coralRed} roughness={0.7} />
+      </mesh>
+      <mesh position={[12.7, parapetH + 0.04, -voidHalfD]}>
+        <boxGeometry args={[16.8, 0.08, 0.25]} />
         <meshStandardMaterial color={FST_COLORS.coralRed} roughness={0.7} />
       </mesh>
 
-      {/* Tanaman Hijau di Lis */}
-      <mesh position={[0, parapetH + 0.1, voidHalfD - 0.1]}>
-        <boxGeometry args={[voidHalfW * 1.8, 0.2, 0.22]} />
+      {/* Tanaman Hijau di Lis Koridor */}
+      <mesh position={[-12.7, parapetH + 0.1, voidHalfD - 0.1]}>
+        <boxGeometry args={[15.0, 0.2, 0.22]} />
         <meshStandardMaterial color={FST_COLORS.foliageGreen} roughness={0.6} />
       </mesh>
-      <mesh position={[0, parapetH + 0.1, -voidHalfD + 0.1]}>
-        <boxGeometry args={[voidHalfW * 1.8, 0.2, 0.22]} />
+      <mesh position={[12.7, parapetH + 0.1, voidHalfD - 0.1]}>
+        <boxGeometry args={[15.0, 0.2, 0.22]} />
+        <meshStandardMaterial color={FST_COLORS.foliageGreen} roughness={0.6} />
+      </mesh>
+      <mesh position={[-12.7, parapetH + 0.1, -voidHalfD + 0.1]}>
+        <boxGeometry args={[15.0, 0.2, 0.22]} />
+        <meshStandardMaterial color={FST_COLORS.foliageGreen} roughness={0.6} />
+      </mesh>
+      <mesh position={[12.7, parapetH + 0.1, -voidHalfD + 0.1]}>
+        <boxGeometry args={[15.0, 0.2, 0.22]} />
         <meshStandardMaterial color={FST_COLORS.foliageGreen} roughness={0.6} />
       </mesh>
     </group>
@@ -217,74 +339,87 @@ function AtriumCutawayBalcony() {
 }
 
 // =========================================================================
-// 4. Tangga Imperial & 2 Lift Melengkung di Sisi Void
-// Berdasarkan Spesifikasi: Tangga besar naik, bercabang 2 ke kiri-kanan, diapit 2 lift
+// 4. Tangga Imperial & 2 Lift di dalam Core Setengah Lingkaran Sisi Void
+// Berdasarkan Spesifikasi FST: Tangga bercabang 2 ke kiri-kanan, diapit 2 lift
 // =========================================================================
 function CutawayCoreStairsAndLifts({ level }: { level: number }) {
   return (
     <group>
-      {/* Core Utara: Tangga Imperial & 2 Lift */}
-      <group position={[0, 0, 21.0]}>
-        {/* Bordes Tangga Imperial Tengah */}
-        <mesh position={[0, 0.35, 2.5]} castShadow>
-          <boxGeometry args={[4.2, 0.7, 3.2]} />
+      {/* Core Utara: Tangga Imperial & 2 Lift di dalam Setengah Lingkaran */}
+      <group position={[0, 0, 17.0]}>
+        {/* Bordes Tangga Imperial Tengah di dalam Setengah Lingkaran */}
+        <mesh position={[0, 0.28, -2.0]} castShadow>
+          <boxGeometry args={[3.8, 0.55, 2.6]} />
           <meshStandardMaterial color="#E2E8F0" roughness={0.7} />
         </mesh>
-        {/* Cabang Tangga Kiri & Kanan */}
-        <mesh position={[-2.8, 0.65, 3.6]} rotation={[0.2, 0, 0]} castShadow>
-          <boxGeometry args={[1.5, 0.35, 2.6]} />
+        {/* Anak Tangga Menghubungkan ke Koridor */}
+        <mesh position={[0, 0.14, -0.6]} castShadow>
+          <boxGeometry args={[3.2, 0.28, 1.2]} />
           <meshStandardMaterial color="#CBD5E1" roughness={0.7} />
         </mesh>
-        <mesh position={[2.8, 0.65, 3.6]} rotation={[0.2, 0, 0]} castShadow>
-          <boxGeometry args={[1.5, 0.35, 2.6]} />
+        {/* Cabang Tangga Kiri & Kanan */}
+        <mesh position={[-2.4, 0.45, -0.6]} rotation={[-0.15, 0, 0]} castShadow>
+          <boxGeometry args={[1.3, 0.3, 2.0]} />
+          <meshStandardMaterial color="#CBD5E1" roughness={0.7} />
+        </mesh>
+        <mesh position={[2.4, 0.45, -0.6]} rotation={[-0.15, 0, 0]} castShadow>
+          <boxGeometry args={[1.3, 0.3, 2.0]} />
           <meshStandardMaterial color="#CBD5E1" roughness={0.7} />
         </mesh>
 
-        {/* 2 Pintu Lift Bersebelahan */}
-        <mesh position={[-4.5, 1.1, 4.8]} castShadow>
-          <boxGeometry args={[1.8, 2.2, 0.15]} />
+        {/* 2 Pintu Lift Bersebelahan Menghadap Koridor */}
+        <mesh position={[-3.4, 1.1, 1.2]} castShadow>
+          <boxGeometry args={[1.6, 2.2, 0.15]} />
           <meshStandardMaterial color="#64748B" metalness={0.7} roughness={0.3} />
         </mesh>
-        <mesh position={[4.5, 1.1, 4.8]} castShadow>
-          <boxGeometry args={[1.8, 2.2, 0.15]} />
+        <mesh position={[3.4, 1.1, 1.2]} castShadow>
+          <boxGeometry args={[1.6, 2.2, 0.15]} />
           <meshStandardMaterial color="#64748B" metalness={0.7} roughness={0.3} />
         </mesh>
 
         {/* Label 3D Core */}
-        <Html position={[0, 2.2, 2.5]} center distanceFactor={45}>
+        <Html position={[0, 2.0, -2.0]} center distanceFactor={45}>
           <div className="pointer-events-none px-2 py-0.5 rounded-md bg-slate-900/80 backdrop-blur-sm text-[10px] font-bold text-white shadow-md border border-slate-700 whitespace-nowrap">
             {level === 1 ? "Lobby Sarjana & Tangga Utama" : "Tangga Imperial & 2 Lift (Utara)"}
           </div>
         </Html>
       </group>
 
-      {/* Core Selatan: Tangga Imperial & 2 Lift */}
-      <group position={[0, 0, -21.0]}>
-        <mesh position={[0, 0.35, -2.5]} castShadow>
-          <boxGeometry args={[4.2, 0.7, 3.2]} />
+      {/* Core Selatan: Tangga Imperial & 2 Lift di dalam Setengah Lingkaran */}
+      <group position={[0, 0, -17.0]}>
+        {/* Bordes Tangga Imperial Tengah di dalam Setengah Lingkaran */}
+        <mesh position={[0, 0.28, 2.0]} castShadow>
+          <boxGeometry args={[3.8, 0.55, 2.6]} />
           <meshStandardMaterial color="#E2E8F0" roughness={0.7} />
         </mesh>
-        <mesh position={[-2.8, 0.65, -3.6]} rotation={[-0.2, 0, 0]} castShadow>
-          <boxGeometry args={[1.5, 0.35, 2.6]} />
+        {/* Anak Tangga Menghubungkan ke Koridor */}
+        <mesh position={[0, 0.14, 0.6]} castShadow>
+          <boxGeometry args={[3.2, 0.28, 1.2]} />
           <meshStandardMaterial color="#CBD5E1" roughness={0.7} />
         </mesh>
-        <mesh position={[2.8, 0.65, -3.6]} rotation={[-0.2, 0, 0]} castShadow>
-          <boxGeometry args={[1.5, 0.35, 2.6]} />
+        {/* Cabang Tangga Kiri & Kanan */}
+        <mesh position={[-2.4, 0.45, 0.6]} rotation={[0.15, 0, 0]} castShadow>
+          <boxGeometry args={[1.3, 0.3, 2.0]} />
+          <meshStandardMaterial color="#CBD5E1" roughness={0.7} />
+        </mesh>
+        <mesh position={[2.4, 0.45, 0.6]} rotation={[0.15, 0, 0]} castShadow>
+          <boxGeometry args={[1.3, 0.3, 2.0]} />
           <meshStandardMaterial color="#CBD5E1" roughness={0.7} />
         </mesh>
 
-        <mesh position={[-4.5, 1.1, -4.8]} castShadow>
-          <boxGeometry args={[1.8, 2.2, 0.15]} />
+        {/* 2 Pintu Lift Bersebelahan */}
+        <mesh position={[-3.4, 1.1, -1.2]} castShadow>
+          <boxGeometry args={[1.6, 2.2, 0.15]} />
           <meshStandardMaterial color="#64748B" metalness={0.7} roughness={0.3} />
         </mesh>
-        <mesh position={[4.5, 1.1, -4.8]} castShadow>
-          <boxGeometry args={[1.8, 2.2, 0.15]} />
+        <mesh position={[3.4, 1.1, -1.2]} castShadow>
+          <boxGeometry args={[1.6, 2.2, 0.15]} />
           <meshStandardMaterial color="#64748B" metalness={0.7} roughness={0.3} />
         </mesh>
 
-        <Html position={[0, 2.2, -2.5]} center distanceFactor={45}>
+        <Html position={[0, 2.0, 2.0]} center distanceFactor={45}>
           <div className="pointer-events-none px-2 py-0.5 rounded-md bg-slate-900/80 backdrop-blur-sm text-[10px] font-bold text-white shadow-md border border-slate-700 whitespace-nowrap">
-            {level === 1 ? "Lobby Pascasarjana & Tangga" : "Tangga Imperial & 2 Lift (Selatan)"}
+            {level === 1 ? "Lobby Pascasarjana & Tangga Selatan" : "Tangga Imperial & 2 Lift (Selatan)"}
           </div>
         </Html>
       </group>
