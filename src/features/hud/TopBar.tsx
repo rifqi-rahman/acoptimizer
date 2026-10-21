@@ -1,26 +1,25 @@
 import React from "react";
-import { Layers, Menu, Sparkles } from "lucide-react";
+import { Layers, Sparkles, Wind } from "lucide-react";
 import { useRoomStore } from "../../stores/roomStore";
 import { useViewStore } from "../../stores/viewStore";
 
 export const TopBar: React.FC = () => {
-  const { is2D, toggle2D, setSidebarOpen } = useViewStore();
+  const { is2D, toggle2D } = useViewStore();
   const { connection } = useRoomStore();
 
   return (
     <div className="flex items-center justify-between w-full pointer-events-auto">
-      {/* Sisi Kiri: Menu Trigger Button (Hover untuk buka sidebar) & Status Telemetri */}
+      {/* Sisi Kiri: Brand & Status Telemetri */}
       <div className="flex items-center gap-3">
-        {/* Tombol Menu yang otomatis membuka sidebar saat di-hover */}
-        <button
-          onMouseEnter={() => setSidebarOpen(true)}
-          onClick={() => setSidebarOpen(true)}
-          className="flex items-center gap-2 bg-white/95 backdrop-blur-md px-3.5 py-2 rounded-full shadow-md border border-slate-200/80 text-xs font-bold text-slate-700 hover:bg-slate-50 transition active:scale-95 cursor-pointer"
-          title="Buka Menu Sidebar (Arahkan kursor ke sini)"
-        >
-          <Menu className="w-4 h-4 text-slate-700" />
-          <span>Menu</span>
-        </button>
+        {/* Brand Acoptimizer Logo Pill */}
+        <div className="flex items-center gap-2.5 bg-white/95 backdrop-blur-md px-4 py-2 rounded-full shadow-md border border-slate-200/80">
+          <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white shadow-sm">
+            <Wind className="w-4 h-4" />
+          </div>
+          <span className="text-slate-900 font-extrabold tracking-tight text-sm">
+            Acoptimizer
+          </span>
+        </div>
 
         {/* Live Status Pill */}
         <div className="flex items-center gap-2 bg-white/95 backdrop-blur-md px-3.5 py-2 rounded-full shadow-md border border-slate-200/80 text-xs font-semibold">
