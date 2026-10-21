@@ -127,28 +127,6 @@ export const FloorPlan2D: React.FC<FloorPlan2DProps> = ({ floor }) => {
         isDragging ? "cursor-grabbing" : "cursor-grab"
       }`}
     >
-      {/* Header Info Pill di Dalam Panel 2D */}
-      <div className="absolute top-4 left-16 z-20 flex items-center gap-3 bg-white/95 backdrop-blur-md px-4 py-2 rounded-2xl shadow-lg border border-slate-200/80">
-        <div>
-          <h2 className="text-sm font-extrabold text-slate-800 tracking-tight">
-            Denah 2D • {floor.label}
-          </h2>
-          <p className="text-[10px] text-slate-500">
-            {floor.rooms.length} Ruangan • Desain Atrium Terbuka
-          </p>
-        </div>
-        <div className="hidden sm:flex items-center gap-2 text-[10px] pl-2 border-l border-slate-200">
-          <span className="flex items-center gap-1 font-medium text-slate-600">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" /> Terpakai
-          </span>
-          <span className="flex items-center gap-1 font-medium text-slate-600 ml-1">
-            <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block" /> Eco
-          </span>
-          <span className="flex items-center gap-1 font-medium text-slate-600 ml-1">
-            <span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" /> Nonaktif
-          </span>
-        </div>
-      </div>
 
       {/* SVG Canvas Spasial 2D dengan Pan & Zoom */}
       <svg
@@ -249,8 +227,8 @@ export const FloorPlan2D: React.FC<FloorPlan2DProps> = ({ floor }) => {
         </g>
       </svg>
 
-      {/* Floating Zoom & Reset Controls di Pojok Kanan Bawah Panel 2D */}
-      <div className="absolute right-4 bottom-4 z-20 flex flex-col gap-1.5 bg-white/95 backdrop-blur-md p-1.5 rounded-2xl shadow-xl border border-slate-200/90">
+      {/* Floating Zoom & Reset Controls di Pojok Kiri Bawah Panel 2D */}
+      <div className="absolute left-4 bottom-4 z-20 flex flex-col gap-1.5 bg-white/95 backdrop-blur-md p-1.5 rounded-2xl shadow-xl border border-slate-200/90">
         <button
           onClick={() => setZoom((z) => Math.min(3.5, z + 0.25))}
           title="Perbesar (Zoom In)"

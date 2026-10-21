@@ -7,7 +7,7 @@ export const FloorRail: React.FC = () => {
   const floors = [7, 6, 5, 4, 3, 2, 1];
 
   return (
-    <div className="absolute left-4 top-1/2 -translate-y-1/2 z-30 pointer-events-auto flex flex-col items-center gap-1.5 w-12 bg-white/95 backdrop-blur-md p-1.5 rounded-full shadow-2xl border border-slate-200/90">
+    <div className="absolute right-4 top-1/2 -translate-y-1/2 z-30 pointer-events-auto flex flex-col items-center gap-1.5 w-12 bg-white/95 backdrop-blur-md p-1.5 rounded-full shadow-2xl border border-slate-200/90">
       {/* Tombol Home: Gedung FST */}
       <div className="relative flex items-center justify-center">
         <button
@@ -16,15 +16,15 @@ export const FloorRail: React.FC = () => {
             mode === "building"
               ? "bg-slate-900 text-white shadow-md scale-105"
               : "text-slate-700 hover:bg-slate-100"
-          } peer`}
+          } peer cursor-pointer`}
         >
           <Home className="w-4 h-4" />
         </button>
 
-        {/* Floating Tooltip Label (Kanan) */}
-        <div className="pointer-events-none absolute left-full ml-3 px-3 py-1.5 bg-slate-900/90 backdrop-blur-md text-white text-xs font-semibold rounded-xl shadow-xl whitespace-nowrap opacity-0 -translate-x-2 transition-all duration-200 peer-hover:opacity-100 peer-hover:translate-x-0 z-50">
+        {/* Floating Tooltip Label (Kiri) */}
+        <div className="pointer-events-none absolute right-full mr-3 px-3 py-1.5 bg-slate-900/90 backdrop-blur-md text-white text-xs font-semibold rounded-xl shadow-xl whitespace-nowrap opacity-0 translate-x-2 transition-all duration-200 peer-hover:opacity-100 peer-hover:translate-x-0 z-50">
           Gedung FST
-          <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 bg-slate-900/90 rotate-45" />
+          <div className="absolute top-1/2 -right-1 -translate-y-1/2 w-2 h-2 bg-slate-900/90 rotate-45" />
         </div>
       </div>
 
@@ -43,7 +43,7 @@ export const FloorRail: React.FC = () => {
                 isSelected
                   ? "bg-blue-600 text-white shadow-md scale-105"
                   : "text-slate-700 hover:bg-slate-100"
-              } peer`}
+              } peer cursor-pointer`}
             >
               <span>LT.{floor}</span>
 
@@ -53,10 +53,10 @@ export const FloorRail: React.FC = () => {
               )}
             </button>
 
-            {/* Floating Tooltip Label (Kanan) */}
-            <div className="pointer-events-none absolute left-full ml-3 px-3 py-1.5 bg-slate-900/90 backdrop-blur-md text-white text-xs font-semibold rounded-xl shadow-xl whitespace-nowrap opacity-0 -translate-x-2 transition-all duration-200 peer-hover:opacity-100 peer-hover:translate-x-0 z-50">
+            {/* Floating Tooltip Label (Kiri) */}
+            <div className="pointer-events-none absolute right-full mr-3 px-3 py-1.5 bg-slate-900/90 backdrop-blur-md text-white text-xs font-semibold rounded-xl shadow-xl whitespace-nowrap opacity-0 translate-x-2 transition-all duration-200 peer-hover:opacity-100 peer-hover:translate-x-0 z-50">
               Lantai {floor}
-              <div className="absolute top-1/2 -left-1 -translate-y-1/2 w-2 h-2 bg-slate-900/90 rotate-45" />
+              <div className="absolute top-1/2 -right-1 -translate-y-1/2 w-2 h-2 bg-slate-900/90 rotate-45" />
             </div>
           </div>
         );

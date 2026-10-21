@@ -4,8 +4,8 @@ import { useMockSimulation } from "./data/MockSimulation";
 import { CompassHUD } from "./features/hud/CompassHUD";
 import { FloorRail } from "./features/hud/FloorRail";
 import { LayerSwitcher } from "./features/hud/LayerSwitcher";
+import { PanelTopControls } from "./features/hud/PanelTopControls";
 import { SidePanel } from "./features/hud/SidePanel";
-import { TopBar } from "./features/hud/TopBar";
 import { AccountModal } from "./features/modals/AccountModal";
 import { AutomationsModal } from "./features/modals/AutomationsModal";
 import { SettingsModal } from "./features/modals/SettingsModal";
@@ -53,41 +53,34 @@ export function App() {
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-[#F1F3F6] select-none flex p-3 gap-3">
-      {/* 1. Sidebar Navigasi Utama (Settings, Akun, IoT, Analytics, etc.) */}
+      {/* 1. Sidebar Navigasi Utama (Hanya memanjang saat di-hover) */}
       <AppSidebar />
 
-      {/* 2. Area Utama Aplikasi */}
-      <div className="flex-1 h-full flex flex-col gap-3 min-w-0 overflow-hidden">
-        {/* TopBar Header Bar */}
-        <header className="h-11 w-full flex items-center justify-between flex-shrink-0">
-          <TopBar />
-        </header>
+      {/* 2. Workspace Utama: Panel Visual 3/4 (Kiri) + Panel Detail 1/4 (Kanan) */}
+      <main className="flex-1 w-full h-full flex gap-3 min-w-0 overflow-hidden">
+        {/* Visual Container: 3/4 Width (75%) Align Kiri */}
+        <section className="w-3/4 h-full relative rounded-3xl bg-white shadow-xl border border-slate-200/90 overflow-hidden flex flex-col">
+          {/* Visual Canvas (2D / 3D) */}
+          <div className="w-full h-full relative overflow-hidden">
+            {is2D || mode === "floor" ? (
+              <FloorPlan2D floor={currentFloor} />
+            ) : (
+              <TwinCanvas floors={floors} />
+            )}
+          </div>
 
-        {/* Workspace: Panel Visual 3/4 (Kiri) + Panel Detail 1/4 (Kanan) */}
-        <div className="flex-1 w-full flex gap-3 min-h-0 overflow-hidden">
-          {/* Visual Container: 3/4 Width (75%) Align Kiri */}
-          <section className="w-3/4 h-full relative rounded-3xl bg-white shadow-xl border border-slate-200/90 overflow-hidden flex flex-col">
-            {/* Visual Canvas (2D / 3D) */}
-            <div className="w-full h-full relative overflow-hidden">
-              {is2D || mode === "floor" ? (
-                <FloorPlan2D floor={currentFloor} />
-              ) : (
-                <TwinCanvas floors={floors} />
-              )}
-            </div>
+          {/* Kontrol HUD Lengkap di Dalam Panel Visual */}
+          <PanelTopControls />
+          <CompassHUD />
+          <FloorRail />
+          <LayerSwitcher />
+        </section>
 
-            {/* Panel Selektor Lantai (Terpisah & Eksklusif di Dalam Panel Visual) */}
-            <FloorRail />
-            <CompassHUD />
-            <LayerSwitcher />
-          </section>
-
-          {/* Right Aside Panel: 1/4 Width (25%) */}
-          <aside className="w-1/4 h-full relative rounded-3xl bg-white shadow-xl border border-slate-200/90 overflow-hidden flex flex-col">
-            <SidePanel room={selectedRoom} currentFloor={currentFloor} />
-          </aside>
-        </div>
-      </div>
+        {/* Right Aside Panel: 1/4 Width (25%) */}
+        <aside className="w-1/4 h-full relative rounded-3xl bg-white shadow-xl border border-slate-200/90 overflow-hidden flex flex-col">
+          <SidePanel room={selectedRoom} currentFloor={currentFloor} />
+        </aside>
+      </main>
 
       {/* 3. Dialog Modals */}
       <SettingsModal />
