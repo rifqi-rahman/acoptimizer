@@ -20,7 +20,7 @@ export const Building3D: React.FC<Building3DProps> = ({ floors }) => {
       {/* Lantai Dasar Base / Tanah */}
       <mesh position={[0, -0.4, 0]} receiveShadow>
         <cylinderGeometry args={[55, 58, 0.8, 64]} />
-        <meshStandardMaterial color="#FFFFFF" roughness={0.9} />
+        <meshStandardMaterial color="#E6ECF2" roughness={0.9} />
       </mesh>
 
       {floors.map((floor) => {
