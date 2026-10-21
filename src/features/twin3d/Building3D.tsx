@@ -18,28 +18,13 @@ export const Building3D: React.FC<Building3DProps> = ({ floors }) => {
 
   return (
     <group position={[0, -12, 0]}>
-      {/* =================================================================== */}
-      {/* 1. MODEL UTUH GEDUNG FST (TAMPILAN MODE BUILDING)                   */}
-      {/* =================================================================== */}
-      {mode === "building" && (
-        <group>
-          {/* Kolom Merah & Area Parkir / Drop-off Terbuka Lantai 1 */}
-          <GroundFloorColonnade />
+      {/* 1. Bidang Tanah Bawah Gedung (Warna #5b8efc Sesuai Permintaan) */}
+      <mesh position={[0, -0.2, 0]} receiveShadow>
+        <boxGeometry args={[68, 0.4, 60]} />
+        <meshStandardMaterial color="#5b8efc" roughness={0.75} />
+      </mesh>
 
-          {/* Fasad Eksterior Otentik (Krem, Terracotta, Pinstripe Hijau & Ornamen) */}
-          <AuthenticExteriorFacade />
-
-          {/* Atap Genteng Merah Bata, Panel Surya (PV) & Kubah Hijau */}
-          <AuthenticRoofSystem />
-
-          {/* Halaman Atrium Dalam (Taman, Parkir & Tanaman Koridor) */}
-          <CourtyardGarden />
-        </group>
-      )}
-
-      {/* =================================================================== */}
-      {/* 2. DIGITAL TWIN INTERAKTIF: SLAB LANTAI & RUANGAN                    */}
-      {/* =================================================================== */}
+      {/* 2. Seluruh Lantai Gedung (Lantai 1 s/d 7) */}
       {floors.map((floor) => {
         const yBase = (floor.level - 1) * 4.6;
         const isHiddenInFocus = mode !== "building" && selectedFloor !== floor.level;
@@ -49,12 +34,21 @@ export const Building3D: React.FC<Building3DProps> = ({ floors }) => {
         return (
           <group key={floor.level} position={[0, yBase, 0]}>
             {/* Pelat Lantai Putih dengan Void Atrium Tengah */}
-            <FloorSlabMesh floor={floor} isFloorFocus={mode !== "building"} />
+            <FloorSlabMesh floor={floor} />
 
-            {/* Dinding Pembatas / Railing Void Atrium Dalam */}
-            <AtriumInnerCorridorRail floor={floor} />
+            {/* Fasad Sesuai Foto Asli Gedung FST */}
+            {floor.level === 1 ? (
+              <GroundFloorColonnade />
+            ) : floor.level === 7 ? (
+              <TopFloorArchedFacade />
+            ) : (
+              <StandardFloorFacade />
+            )}
 
-            {/* Ruangan-ruangan Berwarna Status AC (Interactive Digital Twin) */}
+            {/* Pagar Pengaman Kaca Void Atrium */}
+            <AtriumRailingMesh height={1.1} />
+
+            {/* Ruangan-Ruangan Efisien (60 FPS Performance-Optimized) */}
             {floor.rooms.map((room) => {
               const live = liveRooms[room.slotId];
               const status = live
@@ -66,11 +60,10 @@ export const Building3D: React.FC<Building3DProps> = ({ floors }) => {
               const color = getStatusColor(status, layer, live?.temperature ?? null);
 
               return (
-                <InteractiveRoomBox
+                <RoomBoxCutaway
                   key={room.slotId}
                   room={room}
                   color={color}
-                  isFloorFocus={mode !== "building"}
                   onClick={() => {
                     if (mode === "building") {
                       selectFloor(floor.level);
@@ -84,451 +77,21 @@ export const Building3D: React.FC<Building3DProps> = ({ floors }) => {
           </group>
         );
       })}
+
+      {/* 3. Struktur Atap, Menara Sudut & Kubah Ikonik FST (Foto Tampak Atas) */}
+      {mode === "building" && (
+        <group position={[0, 7 * 4.6, 0]}>
+          <RoofAndDomesStructure floor={floors[floors.length - 1]} />
+        </group>
+      )}
     </group>
   );
 };
 
 // =========================================================================
-// 1. ATAP GENTENG MERAH BATA, PANEL SURYA (PV) & KUBAH HIJAU (FOTO 2 & 5)
+// 1. Pelat Lantai Putih Halus dengan Void Atrium Tengah
 // =========================================================================
-function AuthenticRoofSystem() {
-  const roofY = 7 * 4.6; // Elevasi di atas lantai 7 (Y = 32.2)
-
-  // Merged geometry untuk atap genteng merah limasan di sekeliling 4 sayap
-  const roofTilesGeometry = useMemo(() => {
-    const boxes: THREE.BufferGeometry[] = [];
-    const roofH = 3.6;
-    const slopeW = 11.5;
-
-    // Sayap Utara & Selatan (atap miring merah)
-    // Utara
-    const northRoof = new THREE.BoxGeometry(65, 0.4, slopeW);
-    northRoof.rotateX(0.28);
-    northRoof.translate(0, roofY + roofH / 2, 22.5);
-    boxes.push(northRoof);
-
-    // Selatan
-    const southRoof = new THREE.BoxGeometry(65, 0.4, slopeW);
-    southRoof.rotateX(-0.28);
-    southRoof.translate(0, roofY + roofH / 2, -22.5);
-    boxes.push(southRoof);
-
-    // Sayap Timur & Barat
-    // Timur
-    const eastRoof = new THREE.BoxGeometry(slopeW, 0.4, 38);
-    eastRoof.rotateZ(-0.28);
-    eastRoof.translate(26.5, roofY + roofH / 2, 0);
-    boxes.push(eastRoof);
-
-    // Barat
-    const westRoof = new THREE.BoxGeometry(slopeW, 0.4, 38);
-    westRoof.rotateZ(0.28);
-    westRoof.translate(-26.5, roofY + roofH / 2, 0);
-    boxes.push(westRoof);
-
-    // 4 Piramida Paviliun Sudut (Corner Towers)
-    [
-      [-32, -28],
-      [32, -28],
-      [32, 28],
-      [-32, 28],
-    ].forEach(([cx, cz]) => {
-      const cornerPyramid = new THREE.ConeGeometry(9.5, 4.2, 4);
-      cornerPyramid.rotateY(Math.PI / 4);
-      cornerPyramid.translate(cx, roofY + 2.1, cz);
-      boxes.push(cornerPyramid);
-    });
-
-    return BufferGeometryUtils.mergeGeometries(boxes, false);
-  }, [roofY]);
-
-  // Merged geometry untuk Solar Panels (PV Arrays) di atap (Foto 2 & 5)
-  const solarPanelsGeometry = useMemo(() => {
-    const panels: THREE.BufferGeometry[] = [];
-
-    // Array panel surya sisi Selatan (menghadap matahari)
-    for (let x = -18; x <= 18; x += 4.5) {
-      const pv = new THREE.BoxGeometry(3.8, 0.08, 6.2);
-      pv.rotateX(-0.28);
-      pv.translate(x, roofY + 2.4, -22.5);
-      panels.push(pv);
-    }
-
-    // Array panel surya sisi Utara
-    for (let x = -18; x <= 18; x += 4.5) {
-      const pv = new THREE.BoxGeometry(3.8, 0.08, 6.2);
-      pv.rotateX(0.28);
-      pv.translate(x, roofY + 2.4, 22.5);
-      panels.push(pv);
-    }
-
-    return BufferGeometryUtils.mergeGeometries(panels, false);
-  }, [roofY]);
-
-  return (
-    <group>
-      {/* Atap Genteng Merah Bata Terracotta */}
-      {roofTilesGeometry && (
-        <mesh geometry={roofTilesGeometry} castShadow receiveShadow>
-          <meshStandardMaterial color="#A63D24" roughness={0.75} />
-        </mesh>
-      )}
-
-      {/* Array Panel Surya (Photovoltaic) Biru Gelap */}
-      {solarPanelsGeometry && (
-        <mesh geometry={solarPanelsGeometry}>
-          <meshStandardMaterial color="#1E3A8A" roughness={0.3} metalness={0.7} />
-        </mesh>
-      )}
-
-      {/* Tower Tangga/Lift Tengah dengan Kubah Hijau Otentik FST (Foto 2 & 5) */}
-      <group position={[0, roofY, 20]}>
-        {/* Struktur Dinding Tower Putih/Krem */}
-        <mesh position={[0, 2.5, 0]} castShadow>
-          <boxGeometry args={[11, 5, 9]} />
-          <meshStandardMaterial color="#F5EFEB" roughness={0.8} />
-        </mesh>
-        {/* Silinder Dudukan Kubah (Drum) */}
-        <mesh position={[0, 5.8, 0]} castShadow>
-          <cylinderGeometry args={[4.4, 4.4, 1.6, 32]} />
-          <meshStandardMaterial color="#FFFFFF" roughness={0.8} />
-        </mesh>
-        {/* Kubah Hijau Khas FST */}
-        <mesh position={[0, 6.6, 0]} castShadow>
-          <sphereGeometry args={[4.4, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
-          <meshStandardMaterial color="#558B6E" roughness={0.5} />
-        </mesh>
-        {/* Spire / Ujung Kubah */}
-        <mesh position={[0, 11.4, 0]}>
-          <cylinderGeometry args={[0.08, 0.18, 1.2, 8]} />
-          <meshStandardMaterial color="#FBBF24" metalness={0.8} roughness={0.2} />
-        </mesh>
-      </group>
-    </group>
-  );
-}
-
-// =========================================================================
-// 2. FASAD EKSTERIOR OTENTIK FST (KREM, TERRACOTTA, PINSTRIPE HIJAU, ROSTER)
-// Sesuai Foto 1, 3, dan 4
-// =========================================================================
-function AuthenticExteriorFacade() {
-  const h = 6 * 4.6; // Tinggi dari Lantai 2 sampai 7 (6 lantai x 4.6m = 27.6m)
-  const yCenter = 4.6 + h / 2; // Mulai di atas lobi lantai 1 (Y = 18.4)
-  const halfW = 32.1;
-  const halfD = 28.1;
-
-  // 1. Dinding Utama Warna Krem/Off-White
-  const creamWallsGeometry = useMemo(() => {
-    const boxes: THREE.BufferGeometry[] = [];
-    const wallThick = 0.3;
-
-    // Fasad Utara & Selatan
-    const northW = new THREE.BoxGeometry(halfW * 2, h, wallThick);
-    northW.translate(0, yCenter, halfD);
-    boxes.push(northW);
-
-    const southW = new THREE.BoxGeometry(halfW * 2, h, wallThick);
-    southW.translate(0, yCenter, -halfD);
-    boxes.push(southW);
-
-    // Fasad Timur & Barat
-    const eastW = new THREE.BoxGeometry(wallThick, h, halfD * 2);
-    eastW.translate(halfW, yCenter, 0);
-    boxes.push(eastW);
-
-    const westW = new THREE.BoxGeometry(wallThick, h, halfD * 2);
-    westW.translate(-halfW, yCenter, 0);
-    boxes.push(westW);
-
-    // Menara Sudut Vertikal Menonjol
-    [
-      [-halfW, -halfD],
-      [halfW, -halfD],
-      [halfW, halfD],
-      [-halfW, halfD],
-    ].forEach(([cx, cz]) => {
-      const tower = new THREE.BoxGeometry(2.4, h + 1.5, 2.4);
-      tower.translate(cx, yCenter + 0.75, cz);
-      boxes.push(tower);
-    });
-
-    return BufferGeometryUtils.mergeGeometries(boxes, false);
-  }, [h, yCenter, halfW, halfD]);
-
-  // 2. Pilaster Garis Terracotta-Red & Ornamen Ventilasi Roster (Foto 1 & 4)
-  const terracottaAccentsGeometry = useMemo(() => {
-    const boxes: THREE.BufferGeometry[] = [];
-
-    // Pilaster Vertikal Terracotta di Sisi Selatan (Fasad Depan) & Utara
-    for (let x = -26; x <= 26; x += 4.0) {
-      // Pilaster Vertikal Penuh
-      const pNorth = new THREE.BoxGeometry(0.7, h, 0.45);
-      pNorth.translate(x, yCenter, halfD + 0.05);
-      boxes.push(pNorth);
-
-      const pSouth = new THREE.BoxGeometry(0.7, h, 0.45);
-      pSouth.translate(x, yCenter, -halfD - 0.05);
-      boxes.push(pSouth);
-
-      // Panel Roster / Kisi Ornamen Islami di antara jendela tiap lantai
-      for (let floorIdx = 0; floorIdx < 6; floorIdx++) {
-        const floorY = 4.6 + floorIdx * 4.6 + 1.2;
-        const rosterN = new THREE.BoxGeometry(1.6, 1.4, 0.42);
-        rosterN.translate(x + 2.0, floorY, halfD + 0.03);
-        boxes.push(rosterN);
-
-        const rosterS = new THREE.BoxGeometry(1.6, 1.4, 0.42);
-        rosterS.translate(x + 2.0, floorY, -halfD - 0.03);
-        boxes.push(rosterS);
-      }
-    }
-
-    // Pilaster Vertikal Sisi Timur & Barat
-    for (let z = -22; z <= 22; z += 4.0) {
-      const pEast = new THREE.BoxGeometry(0.45, h, 0.7);
-      pEast.translate(halfW + 0.05, yCenter, z);
-      boxes.push(pEast);
-
-      const pWest = new THREE.BoxGeometry(0.45, h, 0.7);
-      pWest.translate(-halfW - 0.05, yCenter, z);
-      boxes.push(pWest);
-    }
-
-    return BufferGeometryUtils.mergeGeometries(boxes, false);
-  }, [h, yCenter, halfW, halfD]);
-
-  // 3. Pinstripe Vertikal Hijau Khas FST di Samping Tiang Terracotta (Foto 1 & 4)
-  const greenPinstripesGeometry = useMemo(() => {
-    const strips: THREE.BufferGeometry[] = [];
-
-    // Garis hijau mengapit pilaster terracotta di Fasad Depan (Selatan) & Utara
-    for (let x = -26; x <= 26; x += 4.0) {
-      // Sisi kiri & kanan tiang terracotta
-      [-0.42, 0.42].forEach((offset) => {
-        const sNorth = new THREE.BoxGeometry(0.12, h, 0.48);
-        sNorth.translate(x + offset, yCenter, halfD + 0.06);
-        strips.push(sNorth);
-
-        const sSouth = new THREE.BoxGeometry(0.12, h, 0.48);
-        sSouth.translate(x + offset, yCenter, -halfD - 0.06);
-        strips.push(sSouth);
-      });
-    }
-
-    // Arch Islami / Lengkungan Hijau di Lantai 7 (Lantai Paling Atas)
-    const topFloorY = 4.6 + 5 * 4.6 + 3.2;
-    for (let x = -24; x <= 24; x += 4.0) {
-      const archFrame = new THREE.BoxGeometry(1.6, 0.25, 0.5);
-      archFrame.translate(x, topFloorY, -halfD - 0.06);
-      strips.push(archFrame);
-    }
-
-    return BufferGeometryUtils.mergeGeometries(strips, false);
-  }, [h, yCenter, halfW, halfD]);
-
-  // 4. Jendela-Jendela Kaca Gelap Ritmik Fasad Luar
-  const windowPanesGeometry = useMemo(() => {
-    const panes: THREE.BufferGeometry[] = [];
-
-    for (let floorIdx = 0; floorIdx < 6; floorIdx++) {
-      const winY = 4.6 + floorIdx * 4.6 + 2.8;
-
-      // Jendela di Fasad Depan (Selatan) & Belakang (Utara)
-      for (let x = -24; x <= 24; x += 4.0) {
-        const winN = new THREE.BoxGeometry(1.5, 1.8, 0.38);
-        winN.translate(x, winY, halfD + 0.02);
-        panes.push(winN);
-
-        const winS = new THREE.BoxGeometry(1.5, 1.8, 0.38);
-        winS.translate(x, winY, -halfD - 0.02);
-        panes.push(winS);
-      }
-
-      // Jendela di Fasad Timur & Barat
-      for (let z = -20; z <= 20; z += 4.0) {
-        const winE = new THREE.BoxGeometry(0.38, 1.8, 1.5);
-        winE.translate(halfW + 0.02, winY, z);
-        panes.push(winE);
-
-        const winW = new THREE.BoxGeometry(0.38, 1.8, 1.5);
-        winW.translate(-halfW - 0.02, winY, z);
-        panes.push(winW);
-      }
-    }
-
-    return BufferGeometryUtils.mergeGeometries(panes, false);
-  }, [halfW, halfD]);
-
-  return (
-    <group>
-      {/* 1. Dinding Utama Krem/Off-White */}
-      {creamWallsGeometry && (
-        <mesh geometry={creamWallsGeometry} castShadow receiveShadow>
-          <meshStandardMaterial color="#F7F2EB" roughness={0.8} />
-        </mesh>
-      )}
-
-      {/* 2. Aksen Terracotta Red & Ornamen Kisi Roster */}
-      {terracottaAccentsGeometry && (
-        <mesh geometry={terracottaAccentsGeometry} castShadow receiveShadow>
-          <meshStandardMaterial color="#C85A3E" roughness={0.7} />
-        </mesh>
-      )}
-
-      {/* 3. Pinstripe Vertikal Hijau & Arch Islami */}
-      {greenPinstripesGeometry && (
-        <mesh geometry={greenPinstripesGeometry} castShadow>
-          <meshStandardMaterial color="#2E7D32" roughness={0.6} />
-        </mesh>
-      )}
-
-      {/* 4. Kaca Jendela Gelap */}
-      {windowPanesGeometry && (
-        <mesh geometry={windowPanesGeometry}>
-          <meshStandardMaterial color="#1E293B" roughness={0.2} metalness={0.8} />
-        </mesh>
-      )}
-    </group>
-  );
-}
-
-// =========================================================================
-// 3. LANTAI 1: KOLOM MERAH, KANOPI UTAMA & AREA PARKIR DROP-OFF (FOTO 1 & 3)
-// =========================================================================
-function GroundFloorColonnade() {
-  const colH = 4.4;
-  const colY = colH / 2;
-
-  // Merged geometry untuk tiang-tiang kolom merah terracotta lantai dasar
-  const columnsGeometry = useMemo(() => {
-    const cols: THREE.BufferGeometry[] = [];
-    const halfW = 31.5;
-    const halfD = 27.5;
-
-    // Baris tiang depan (Selatan - Area Drop off)
-    for (let x = -28; x <= 28; x += 4.0) {
-      const c = new THREE.BoxGeometry(0.75, colH, 0.75);
-      c.translate(x, colY, -halfD);
-      cols.push(c);
-    }
-
-    // Baris tiang belakang (Utara)
-    for (let x = -28; x <= 28; x += 4.0) {
-      const c = new THREE.BoxGeometry(0.75, colH, 0.75);
-      c.translate(x, colY, halfD);
-      cols.push(c);
-    }
-
-    // Baris tiang sisi Barat & Timur
-    for (let z = -24; z <= 24; z += 4.0) {
-      const cEast = new THREE.BoxGeometry(0.75, colH, 0.75);
-      cEast.translate(halfW, colY, z);
-      cols.push(cEast);
-
-      const cWest = new THREE.BoxGeometry(0.75, colH, 0.75);
-      cWest.translate(-halfW, colY, z);
-      cols.push(cWest);
-    }
-
-    return BufferGeometryUtils.mergeGeometries(cols, false);
-  }, [colH, colY]);
-
-  return (
-    <group>
-      {/* Tiang Merah Terracotta Lantai Dasar */}
-      {columnsGeometry && (
-        <mesh geometry={columnsGeometry} castShadow receiveShadow>
-          <meshStandardMaterial color="#C84A30" roughness={0.7} />
-        </mesh>
-      )}
-
-      {/* Kanopi Lobi Masuk Utama FST (Foto 1 & 3) */}
-      <group position={[0, 0, -28]}>
-        {/* Fascia Abu-abu Metalik dengan Plakat "FAKULTAS SAINS DAN TEKNOLOGI" */}
-        <mesh position={[0, 4.4, -3.5]} castShadow receiveShadow>
-          <boxGeometry args={[18, 1.2, 7.5]} />
-          <meshStandardMaterial color="#64748B" roughness={0.4} metalness={0.6} />
-        </mesh>
-
-        {/* Kubah Kaca Piramida Hijau Emerald di Atas Kanopi Masuk (Foto 1) */}
-        <mesh position={[4.5, 5.6, -3.5]} castShadow>
-          <coneGeometry args={[3.4, 2.2, 4]} />
-          <meshStandardMaterial
-            color="#10B981"
-            transparent
-            opacity={0.8}
-            roughness={0.2}
-            metalness={0.3}
-          />
-        </mesh>
-
-        {/* Tiang Penyangga Kanopi Ramping */}
-        <mesh position={[-7.5, colY, -7.0]} castShadow>
-          <cylinderGeometry args={[0.2, 0.2, colH, 16]} />
-          <meshStandardMaterial color="#E2E8F0" roughness={0.5} />
-        </mesh>
-        <mesh position={[7.5, colY, -7.0]} castShadow>
-          <cylinderGeometry args={[0.2, 0.2, colH, 16]} />
-          <meshStandardMaterial color="#E2E8F0" roughness={0.5} />
-        </mesh>
-      </group>
-    </group>
-  );
-}
-
-// =========================================================================
-// 4. ATRIUM HALAMAN DALAM (TAMAN, PARKIR & TANAMAN KORIDOR) (FOTO 2 & 5)
-// =========================================================================
-function CourtyardGarden() {
-  const voidHalfW = 21;
-  const voidHalfD = 17;
-
-  return (
-    <group position={[0, 0, 0]}>
-      {/* Lantai Courtyard Paving & Aspal Parkir */}
-      <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[voidHalfW * 2 - 0.2, voidHalfD * 2 - 0.2]} />
-        <meshStandardMaterial color="#1E293B" roughness={0.85} />
-      </mesh>
-
-      {/* Pulau Taman Hijau di Tengah Courtyard */}
-      <mesh position={[0, 0.15, 0]} castShadow receiveShadow>
-        <boxGeometry args={[16, 0.25, 12]} />
-        <meshStandardMaterial color="#2D6A4F" roughness={0.9} />
-      </mesh>
-
-      {/* Pohon-Pohon Hias di Taman Tengah (Low Poly Cepat & Ringan) */}
-      {[
-        [-5, 3],
-        [5, 3],
-        [0, -2],
-      ].map(([tx, tz], i) => (
-        <group key={i} position={[tx, 0.25, tz]}>
-          <mesh position={[0, 1.2, 0]} castShadow>
-            <cylinderGeometry args={[0.18, 0.25, 2.4, 8]} />
-            <meshStandardMaterial color="#78350F" roughness={0.9} />
-          </mesh>
-          <mesh position={[0, 3.2, 0]} castShadow>
-            <sphereGeometry args={[1.6, 12, 10]} />
-            <meshStandardMaterial color="#15803D" roughness={0.8} />
-          </mesh>
-        </group>
-      ))}
-    </group>
-  );
-}
-
-// =========================================================================
-// 5. PELAT LANTAI (SLAB) PUTIH CLAY DENGAN LUBANG ATRIUM
-// =========================================================================
-function FloorSlabMesh({
-  floor,
-  isFloorFocus = false,
-}: {
-  floor: FloorModel;
-  isFloorFocus?: boolean;
-}) {
+function FloorSlabMesh({ floor }: { floor: FloorModel }) {
   const shape = useMemo(() => {
     const s = new THREE.Shape();
     const [first, ...rest] = floor.outerPolygon;
@@ -548,82 +111,484 @@ function FloorSlabMesh({
 
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow castShadow>
-      <extrudeGeometry
-        args={[
-          shape,
-          { depth: 0.5, bevelEnabled: true, bevelThickness: 0.08, bevelSize: 0.08 },
-        ]}
-      />
-      <meshStandardMaterial
-        color={isFloorFocus ? "#FFFFFF" : "#F8FAFC"}
-        roughness={0.85}
-      />
+      <extrudeGeometry args={[shape, { depth: 0.5, bevelEnabled: true, bevelThickness: 0.08, bevelSize: 0.08 }]} />
+      <meshStandardMaterial color="#FFFFFF" roughness={0.85} />
     </mesh>
   );
 }
 
 // =========================================================================
-// 6. RAILING KORIDOR DALAM (PAGAR VOID ATRIUM DENGAN TANAMAN GANTUNG)
+// 2. Lantai 1 (Ground Floor): Pilotis / Kolom Terbuka & Kanopi Lobi FST
+// Sesuai Foto 1 & 3: Lantai dasar terbuka berkolom untuk drop-off / parkir mobil
 // =========================================================================
-function AtriumInnerCorridorRail({ floor: _floor }: { floor: FloorModel }) {
-  const voidHalfW = 21;
-  const voidHalfD = 17;
-  const railH = 1.0;
+function GroundFloorColonnade() {
+  const height = 4.1;
+  const halfW = 32;
+  const halfD = 28;
+  const yCenter = height / 2;
+
+  // Single merged geometry untuk kolom pilotis lantai 1
+  const colonnadeGeometry = useMemo(() => {
+    const boxes: THREE.BufferGeometry[] = [];
+
+    // Kolom Utara & Selatan (spacing ~4.5m)
+    for (let x = -29; x <= 29; x += 4.5) {
+      const colN = new THREE.BoxGeometry(0.6, height, 0.6);
+      colN.translate(x, yCenter, halfD);
+      boxes.push(colN);
+
+      const colS = new THREE.BoxGeometry(0.6, height, 0.6);
+      colS.translate(x, yCenter, -halfD);
+      boxes.push(colS);
+    }
+
+    // Kolom Timur & Barat (spacing ~4.5m)
+    for (let z = -25; z <= 25; z += 4.5) {
+      const colE = new THREE.BoxGeometry(0.6, height, 0.6);
+      colE.translate(halfW, yCenter, z);
+      boxes.push(colE);
+
+      const colW = new THREE.BoxGeometry(0.6, height, 0.6);
+      colW.translate(-halfW, yCenter, z);
+      boxes.push(colW);
+    }
+
+    // Balok lintel atas
+    const lintelN = new THREE.BoxGeometry(halfW * 2, 0.4, 0.6);
+    lintelN.translate(0, height - 0.2, halfD);
+    boxes.push(lintelN);
+
+    const lintelS = new THREE.BoxGeometry(halfW * 2, 0.4, 0.6);
+    lintelS.translate(0, height - 0.2, -halfD);
+    boxes.push(lintelS);
+
+    const lintelE = new THREE.BoxGeometry(0.6, 0.4, halfD * 2);
+    lintelE.translate(halfW, height - 0.2, 0);
+    boxes.push(lintelE);
+
+    const lintelW = new THREE.BoxGeometry(0.6, 0.4, halfD * 2);
+    lintelW.translate(-halfW, height - 0.2, 0);
+    boxes.push(lintelW);
+
+    return BufferGeometryUtils.mergeGeometries(boxes, false);
+  }, [height, halfW, halfD, yCenter]);
 
   return (
-    <group position={[0, railH / 2, 0]}>
-      {/* Railing Putih Void Atrium */}
-      <mesh position={[0, 0, voidHalfD]}>
-        <boxGeometry args={[voidHalfW * 2, railH, 0.08]} />
-        <meshStandardMaterial color="#E2E8F0" roughness={0.4} />
+    <group>
+      {/* Kolom Pilotis Lantai 1 (White Clay) */}
+      {colonnadeGeometry && (
+        <mesh geometry={colonnadeGeometry} castShadow receiveShadow>
+          <meshStandardMaterial color="#FFFFFF" roughness={0.85} />
+        </mesh>
+      )}
+
+      {/* Dinding Kaca Lobi Dalam (Recessed) */}
+      <mesh position={[0, yCenter, -halfD + 4]}>
+        <boxGeometry args={[28, height, 0.05]} />
+        <meshStandardMaterial color="#2563EB" transparent opacity={0.3} roughness={0.25} depthWrite={false} />
       </mesh>
-      <mesh position={[0, 0, -voidHalfD]}>
-        <boxGeometry args={[voidHalfW * 2, railH, 0.08]} />
-        <meshStandardMaterial color="#E2E8F0" roughness={0.4} />
-      </mesh>
-      <mesh position={[-voidHalfW, 0, 0]}>
-        <boxGeometry args={[0.08, railH, voidHalfD * 2]} />
-        <meshStandardMaterial color="#E2E8F0" roughness={0.4} />
-      </mesh>
-      <mesh position={[voidHalfW, 0, 0]}>
-        <boxGeometry args={[0.08, railH, voidHalfD * 2]} />
-        <meshStandardMaterial color="#E2E8F0" roughness={0.4} />
+      <mesh position={[0, yCenter, halfD - 4]}>
+        <boxGeometry args={[28, height, 0.05]} />
+        <meshStandardMaterial color="#2563EB" transparent opacity={0.3} roughness={0.25} depthWrite={false} />
       </mesh>
 
-      {/* Planter Box Tanaman Gantung Hijau di Bibir Void (Foto 2 & 5) */}
-      <mesh position={[0, -0.2, voidHalfD + 0.1]}>
-        <boxGeometry args={[voidHalfW * 2, 0.35, 0.2]} />
-        <meshStandardMaterial color="#15803D" roughness={0.8} />
-      </mesh>
-      <mesh position={[0, -0.2, -voidHalfD - 0.1]}>
-        <boxGeometry args={[voidHalfW * 2, 0.35, 0.2]} />
-        <meshStandardMaterial color="#15803D" roughness={0.8} />
-      </mesh>
+      {/* Kanopi Lobi Masuk Utama FST dengan Skylight Prisma Kaca (Sesuai Foto 1 & 3) */}
+      <group position={[0, 0, -halfD - 2.5]}>
+        {/* Pelat Atap Kanopi */}
+        <mesh position={[0, height - 0.15, 0]} castShadow receiveShadow>
+          <boxGeometry args={[16, 0.35, 6]} />
+          <meshStandardMaterial color="#FFFFFF" roughness={0.85} />
+        </mesh>
+        {/* Tiang Penyangga Depan Kanopi */}
+        <mesh position={[-6.5, yCenter, -2.5]} castShadow>
+          <boxGeometry args={[0.45, height, 0.45]} />
+          <meshStandardMaterial color="#FFFFFF" roughness={0.85} />
+        </mesh>
+        <mesh position={[6.5, yCenter, -2.5]} castShadow>
+          <boxGeometry args={[0.45, height, 0.45]} />
+          <meshStandardMaterial color="#FFFFFF" roughness={0.85} />
+        </mesh>
+        {/* Skylight Prisma Kaca Hijau di Atas Kanopi (Foto 1) */}
+        <mesh position={[0, height + 1.1, 0]} rotation={[0, Math.PI / 4, 0]}>
+          <coneGeometry args={[3.2, 1.8, 4]} />
+          <meshStandardMaterial color="#10B981" transparent opacity={0.65} roughness={0.2} />
+        </mesh>
+        {/* Plang Fascia "FAKULTAS SAINS DAN TEKNOLOGI" */}
+        <mesh position={[0, height - 0.2, -3.05]}>
+          <boxGeometry args={[15.6, 0.5, 0.1]} />
+          <meshStandardMaterial color="#FFFFFF" roughness={0.6} />
+        </mesh>
+      </group>
     </group>
   );
 }
 
 // =========================================================================
-// 7. RUANGAN DIGITAL TWIN INTERAKTIF (BERWARNA SESUAI STATUS AC)
+// 3. Lantai 2 s/d 6: Fasad Vertikal Berpilaster Khas Gedung FST
+// Sesuai Foto 1, 3, 4: Deretan jendela vertikal berirama dengan pilaster
 // =========================================================================
-function InteractiveRoomBox({
+function StandardFloorFacade() {
+  const height = 4.1;
+  const halfW = 31.8;
+  const halfD = 27.8;
+  const yCenter = height / 2;
+
+  // Single merged geometry untuk semua pilaster vertikal & panel spandrel (krawangan)
+  const facadeGeometry = useMemo(() => {
+    const boxes: THREE.BufferGeometry[] = [];
+
+    // Fasad Utara & Selatan: Pilaster vertikal setiap 2.6 meter
+    for (let x = -30; x <= 30; x += 2.6) {
+      const pierN = new THREE.BoxGeometry(0.3, height, 0.28);
+      pierN.translate(x, yCenter, halfD);
+      boxes.push(pierN);
+
+      const pierS = new THREE.BoxGeometry(0.3, height, 0.28);
+      pierS.translate(x, yCenter, -halfD);
+      boxes.push(pierS);
+
+      // Panel spandrel (krawangan/ventilasi) di bawah ambang jendela
+      if (x < 29) {
+        const spanN = new THREE.BoxGeometry(2.3, 0.7, 0.16);
+        spanN.translate(x + 1.3, 0.35, halfD);
+        boxes.push(spanN);
+
+        const spanS = new THREE.BoxGeometry(2.3, 0.7, 0.16);
+        spanS.translate(x + 1.3, 0.35, -halfD);
+        boxes.push(spanS);
+      }
+    }
+
+    // Fasad Timur & Barat: Pilaster vertikal setiap 2.6 meter
+    for (let z = -26; z <= 26; z += 2.6) {
+      const pierE = new THREE.BoxGeometry(0.28, height, 0.3);
+      pierE.translate(halfW, yCenter, z);
+      boxes.push(pierE);
+
+      const pierW = new THREE.BoxGeometry(0.28, height, 0.3);
+      pierW.translate(-halfW, yCenter, z);
+      boxes.push(pierW);
+
+      if (z < 25) {
+        const spanE = new THREE.BoxGeometry(0.16, 0.7, 2.3);
+        spanE.translate(halfW, 0.35, z + 1.3);
+        boxes.push(spanE);
+
+        const spanW = new THREE.BoxGeometry(0.16, 0.7, 2.3);
+        spanW.translate(-halfW, 0.35, z + 1.3);
+        boxes.push(spanW);
+      }
+    }
+
+    // 4 Tiang Sudut Masif
+    [
+      [-halfW, -halfD],
+      [halfW, -halfD],
+      [halfW, halfD],
+      [-halfW, halfD],
+    ].forEach(([cx, cz]) => {
+      const cp = new THREE.BoxGeometry(0.8, height, 0.8);
+      cp.translate(cx, yCenter, cz);
+      boxes.push(cp);
+    });
+
+    // Balok spandrel atas (head rail)
+    [
+      [0, height - 0.2, halfD, halfW * 2, 0.4, 0.28],
+      [0, height - 0.2, -halfD, halfW * 2, 0.4, 0.28],
+      [halfW, height - 0.2, 0, 0.28, 0.4, halfD * 2],
+      [-halfW, height - 0.2, 0, 0.28, 0.4, halfD * 2],
+    ].forEach(([rx, ry, rz, w, h, d]) => {
+      const r = new THREE.BoxGeometry(w, h, d);
+      r.translate(rx, ry, rz);
+      boxes.push(r);
+    });
+
+    return BufferGeometryUtils.mergeGeometries(boxes, false);
+  }, [height, halfW, halfD, yCenter]);
+
+  // Window panes (single merged geometry)
+  const windowGeometry = useMemo(() => {
+    const planes: THREE.BufferGeometry[] = [];
+
+    const winN = new THREE.BoxGeometry(halfW * 2, height - 0.8, 0.05);
+    winN.translate(0, yCenter + 0.2, halfD);
+    planes.push(winN);
+
+    const winS = new THREE.BoxGeometry(halfW * 2, height - 0.8, 0.05);
+    winS.translate(0, yCenter + 0.2, -halfD);
+    planes.push(winS);
+
+    const winE = new THREE.BoxGeometry(0.05, height - 0.8, halfD * 2);
+    winE.translate(halfW, yCenter + 0.2, 0);
+    planes.push(winE);
+
+    const winW = new THREE.BoxGeometry(0.05, height - 0.8, halfD * 2);
+    winW.translate(-halfW, yCenter + 0.2, 0);
+    planes.push(winW);
+
+    return BufferGeometryUtils.mergeGeometries(planes, false);
+  }, [height, halfW, halfD, yCenter]);
+
+  return (
+    <group>
+      {facadeGeometry && (
+        <mesh geometry={facadeGeometry} castShadow receiveShadow>
+          <meshStandardMaterial color="#FFFFFF" roughness={0.85} />
+        </mesh>
+      )}
+      {windowGeometry && (
+        <mesh geometry={windowGeometry}>
+          <meshStandardMaterial color="#2563EB" transparent opacity={0.35} roughness={0.25} depthWrite={false} />
+        </mesh>
+      )}
+    </group>
+  );
+}
+
+// =========================================================================
+// 4. Lantai 7 (Top Floor): Fasad dengan Lengkungan Islamik Lancip (Pointed Arches)
+// Sesuai Foto 1 & 4: Deretan lengkungan lancip khas FST UIN di lantai teratas
+// =========================================================================
+function TopFloorArchedFacade() {
+  const height = 4.1;
+  const halfW = 31.8;
+  const halfD = 27.8;
+  const yCenter = height / 2;
+
+  const archFacadeGeometry = useMemo(() => {
+    const boxes: THREE.BufferGeometry[] = [];
+
+    // Fasad Utara & Selatan: Tiang vertikal + Lengkungan Lancip (Pointed Arches)
+    for (let x = -30; x <= 30; x += 2.6) {
+      const pierN = new THREE.BoxGeometry(0.32, height, 0.28);
+      pierN.translate(x, yCenter, halfD);
+      boxes.push(pierN);
+
+      const pierS = new THREE.BoxGeometry(0.32, height, 0.28);
+      pierS.translate(x, yCenter, -halfD);
+      boxes.push(pierS);
+
+      // Lengkungan Lancip (Pointed Arch Peak) di puncak tiap bay jendela
+      if (x < 29) {
+        // Balok segitiga / arch header lancip
+        const archPeakN = new THREE.BoxGeometry(1.6, 0.7, 0.22);
+        archPeakN.translate(x + 1.3, height - 0.45, halfD);
+        boxes.push(archPeakN);
+
+        const archPeakS = new THREE.BoxGeometry(1.6, 0.7, 0.22);
+        archPeakS.translate(x + 1.3, height - 0.45, -halfD);
+        boxes.push(archPeakS);
+
+        // Ambang spandrel bawah
+        const spanN = new THREE.BoxGeometry(2.3, 0.6, 0.16);
+        spanN.translate(x + 1.3, 0.3, halfD);
+        boxes.push(spanN);
+
+        const spanS = new THREE.BoxGeometry(2.3, 0.6, 0.16);
+        spanS.translate(x + 1.3, 0.3, -halfD);
+        boxes.push(spanS);
+      }
+    }
+
+    // Fasad Timur & Barat: Tiang vertikal + Lengkungan Lancip
+    for (let z = -26; z <= 26; z += 2.6) {
+      const pierE = new THREE.BoxGeometry(0.28, height, 0.32);
+      pierE.translate(halfW, yCenter, z);
+      boxes.push(pierE);
+
+      const pierW = new THREE.BoxGeometry(0.28, height, 0.32);
+      pierW.translate(-halfW, yCenter, z);
+      boxes.push(pierW);
+
+      if (z < 25) {
+        const archPeakE = new THREE.BoxGeometry(0.22, 0.7, 1.6);
+        archPeakE.translate(halfW, height - 0.45, z + 1.3);
+        boxes.push(archPeakE);
+
+        const archPeakW = new THREE.BoxGeometry(0.22, 0.7, 1.6);
+        archPeakW.translate(-halfW, height - 0.45, z + 1.3);
+        boxes.push(archPeakW);
+
+        const spanE = new THREE.BoxGeometry(0.16, 0.6, 2.3);
+        spanE.translate(halfW, 0.3, z + 1.3);
+        boxes.push(spanE);
+
+        const spanW = new THREE.BoxGeometry(0.16, 0.6, 2.3);
+        spanW.translate(-halfW, 0.3, z + 1.3);
+        boxes.push(spanW);
+      }
+    }
+
+    // 4 Tiang Sudut Masif
+    [
+      [-halfW, -halfD],
+      [halfW, -halfD],
+      [halfW, halfD],
+      [-halfW, halfD],
+    ].forEach(([cx, cz]) => {
+      const cp = new THREE.BoxGeometry(0.8, height, 0.8);
+      cp.translate(cx, yCenter, cz);
+      boxes.push(cp);
+    });
+
+    return BufferGeometryUtils.mergeGeometries(boxes, false);
+  }, [height, halfW, halfD, yCenter]);
+
+  // Window panes under pointed arches
+  const windowGeometry = useMemo(() => {
+    const planes: THREE.BufferGeometry[] = [];
+
+    const winN = new THREE.BoxGeometry(halfW * 2, height - 1.1, 0.05);
+    winN.translate(0, yCenter, halfD);
+    planes.push(winN);
+
+    const winS = new THREE.BoxGeometry(halfW * 2, height - 1.1, 0.05);
+    winS.translate(0, yCenter, -halfD);
+    planes.push(winS);
+
+    const winE = new THREE.BoxGeometry(0.05, height - 1.1, halfD * 2);
+    winE.translate(halfW, yCenter, 0);
+    planes.push(winE);
+
+    const winW = new THREE.BoxGeometry(0.05, height - 1.1, halfD * 2);
+    winW.translate(-halfW, yCenter, 0);
+    planes.push(winW);
+
+    return BufferGeometryUtils.mergeGeometries(planes, false);
+  }, [height, halfW, halfD, yCenter]);
+
+  return (
+    <group>
+      {archFacadeGeometry && (
+        <mesh geometry={archFacadeGeometry} castShadow receiveShadow>
+          <meshStandardMaterial color="#FFFFFF" roughness={0.85} />
+        </mesh>
+      )}
+      {windowGeometry && (
+        <mesh geometry={windowGeometry}>
+          <meshStandardMaterial color="#2563EB" transparent opacity={0.35} roughness={0.25} depthWrite={false} />
+        </mesh>
+      )}
+    </group>
+  );
+}
+
+// =========================================================================
+// 5. Atap, Menara Sudut Limasan & Kubah Ikonik (Foto Tampak Atas 2)
+// Sesuai Foto Udara 2: Atap limasan melingkar void tengah, 4 menara sudut & 2 kubah
+// =========================================================================
+function RoofAndDomesStructure({ floor }: { floor: FloorModel }) {
+  const shape = useMemo(() => {
+    const s = new THREE.Shape();
+    const [first, ...rest] = floor.outerPolygon;
+    s.moveTo(first[0], -first[1]);
+    rest.forEach(([x, y]) => s.lineTo(x, -y));
+    s.closePath();
+
+    const hole = new THREE.Path();
+    const [hFirst, ...hRest] = floor.voidPolygon;
+    hole.moveTo(hFirst[0], -hFirst[1]);
+    hRest.forEach(([x, y]) => hole.lineTo(x, -y));
+    hole.closePath();
+    s.holes.push(hole);
+
+    return s;
+  }, [floor]);
+
+  return (
+    <group>
+      {/* Pelat Atap Datar Utama dengan Void */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow castShadow>
+        <extrudeGeometry args={[shape, { depth: 0.5, bevelEnabled: true, bevelThickness: 0.1, bevelSize: 0.1 }]} />
+        <meshStandardMaterial color="#FFFFFF" roughness={0.85} />
+      </mesh>
+
+      {/* Parapet Keliling Atap */}
+      <mesh position={[0, 0.6, 28]}>
+        <boxGeometry args={[64, 0.7, 0.4]} />
+        <meshStandardMaterial color="#FFFFFF" roughness={0.85} />
+      </mesh>
+      <mesh position={[0, 0.6, -28]}>
+        <boxGeometry args={[64, 0.7, 0.4]} />
+        <meshStandardMaterial color="#FFFFFF" roughness={0.85} />
+      </mesh>
+      <mesh position={[32, 0.6, 0]}>
+        <boxGeometry args={[0.4, 0.7, 56]} />
+        <meshStandardMaterial color="#FFFFFF" roughness={0.85} />
+      </mesh>
+      <mesh position={[-32, 0.6, 0]}>
+        <boxGeometry args={[0.4, 0.7, 56]} />
+        <meshStandardMaterial color="#FFFFFF" roughness={0.85} />
+      </mesh>
+
+      {/* 4 Menara Sudut dengan Atap Limasan / Piramida (Foto 2) */}
+      {[
+        [-28.5, -24.5],
+        [28.5, -24.5],
+        [28.5, 24.5],
+        [-28.5, 24.5],
+      ].map(([tx, tz], i) => (
+        <group key={i} position={[tx, 0.5, tz]}>
+          {/* Badan Menara */}
+          <mesh position={[0, 1.25, 0]} castShadow receiveShadow>
+            <boxGeometry args={[7, 2.5, 7]} />
+            <meshStandardMaterial color="#FFFFFF" roughness={0.85} />
+          </mesh>
+          {/* Atap Limasan Piramida Menara */}
+          <mesh position={[0, 3.5, 0]} rotation={[0, Math.PI / 4, 0]} castShadow>
+            <coneGeometry args={[5.2, 2.2, 4]} />
+            <meshStandardMaterial color="#FFFFFF" roughness={0.8} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* 2 Kubah Ikonik Gedung FST (Sayap Utara & Selatan pada Foto 2) */}
+      {[
+        [0, 22],
+        [0, -22],
+      ].map(([dx, dz], i) => (
+        <group key={i} position={[dx, 0.5, dz]}>
+          {/* Drum Silinder Dasar Kubah */}
+          <mesh position={[0, 0.6, 0]} castShadow receiveShadow>
+            <cylinderGeometry args={[3.2, 3.4, 1.2, 24]} />
+            <meshStandardMaterial color="#FFFFFF" roughness={0.85} />
+          </mesh>
+          {/* Setengah Bola Kubah Bulat Khas UIN */}
+          <mesh position={[0, 1.2, 0]} castShadow>
+            <sphereGeometry args={[3.1, 24, 16, 0, Math.PI * 2, 0, Math.PI * 0.5]} />
+            <meshStandardMaterial color="#FFFFFF" roughness={0.7} />
+          </mesh>
+          {/* Ujung Puncak Spire Kubah */}
+          <mesh position={[0, 4.4, 0]} castShadow>
+            <cylinderGeometry args={[0.08, 0.25, 1.2, 8]} />
+            <meshStandardMaterial color="#FFFFFF" roughness={0.5} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+}
+
+// =========================================================================
+// 6. Ruangan 3D Style Cutaway (Performance-Optimized, Buttery Smooth 60 FPS)
+// =========================================================================
+function RoomBoxCutaway({
   room,
   color,
-  isFloorFocus,
   onClick,
 }: {
   room: RoomGeometry;
   color: string;
-  isFloorFocus: boolean;
   onClick: () => void;
 }) {
   const { selectedSlotId } = useViewStore();
   const isSelected = selectedSlotId === room.slotId;
-  const wallH = isFloorFocus ? 1.4 : 0.4;
+  const wallH = 1.3;
 
   return (
     <group position={[room.center[0], 0, -room.center[1]]}>
-      {/* Lantai Ruang (Floor Plate Berwarna Telemetri) */}
+      {/* Lantai Ruang (Interaktif, Menampilkan Status AC / Telemetri) */}
       <mesh
         position={[0, 0.05, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
@@ -637,40 +602,40 @@ function InteractiveRoomBox({
           color={color}
           roughness={0.5}
           emissive={isSelected ? "#2563EB" : color}
-          emissiveIntensity={isSelected ? 0.4 : 0.15}
+          emissiveIntensity={isSelected ? 0.35 : 0.08}
         />
       </mesh>
 
-      {/* Dinding Partisi Pembatas Ruangan saat Mode Fokus Lantai */}
-      {isFloorFocus && (
-        <group>
-          {/* Partisi Kiri & Kanan */}
-          <mesh position={[-room.size[0] * 0.47, wallH / 2, 0]} castShadow>
-            <boxGeometry args={[0.15, wallH, room.size[1] * 0.94]} />
-            <meshStandardMaterial color="#FFFFFF" roughness={0.9} />
-          </mesh>
-          <mesh position={[room.size[0] * 0.47, wallH / 2, 0]} castShadow>
-            <boxGeometry args={[0.15, wallH, room.size[1] * 0.94]} />
-            <meshStandardMaterial color="#FFFFFF" roughness={0.9} />
-          </mesh>
-          {/* Dinding Menghadap Koridor */}
-          <mesh position={[0, wallH / 2, -room.size[1] * 0.47]} castShadow>
-            <boxGeometry args={[room.size[0] * 0.94, wallH, 0.15]} />
-            <meshStandardMaterial color="#FFFFFF" roughness={0.9} />
-          </mesh>
-        </group>
+      {/* Dinding Partisi Antar Ruang (Solid White Clay Ringan) */}
+      <mesh position={[-room.size[0] * 0.47, wallH / 2, 0]}>
+        <boxGeometry args={[0.16, wallH, room.size[1] * 0.92]} />
+        <meshStandardMaterial color="#FFFFFF" roughness={0.9} />
+      </mesh>
+      <mesh position={[room.size[0] * 0.47, wallH / 2, 0]}>
+        <boxGeometry args={[0.16, wallH, room.size[1] * 0.92]} />
+        <meshStandardMaterial color="#FFFFFF" roughness={0.9} />
+      </mesh>
+
+      {/* Dinding Belakang Koridor Dalam */}
+      <mesh position={[0, wallH / 2, -room.size[1] * 0.47]}>
+        <boxGeometry args={[room.size[0] * 0.92, wallH, 0.16]} />
+        <meshStandardMaterial color="#FFFFFF" roughness={0.9} />
+      </mesh>
+
+      {/* Meja Simbolis di Tengah Ruangan */}
+      {room.hasAc && (
+        <mesh position={[0, 0.3, 0]}>
+          <boxGeometry args={[room.size[0] * 0.35, 0.3, room.size[1] * 0.35]} />
+          <meshStandardMaterial color="#F8FAFC" roughness={0.8} />
+        </mesh>
       )}
 
-      {/* Pin Indikator Live Pulsing jika Ini Ruang Uji Coba Pilot R.601 */}
+      {/* Pin Indikator Pulsing pada Ruang Uji Coba Pilot R.601 */}
       {room.hasDevice && (
-        <group position={[0, 2.2, 0]}>
+        <group position={[0, wallH + 0.8, 0]}>
           <mesh>
             <sphereGeometry args={[0.6, 16, 16]} />
-            <meshStandardMaterial
-              color="#EF4444"
-              emissive="#EF4444"
-              emissiveIntensity={0.9}
-            />
+            <meshStandardMaterial color="#EF4444" emissive="#EF4444" emissiveIntensity={0.8} />
           </mesh>
           <mesh position={[0, 1.2, 0]}>
             <coneGeometry args={[0.3, 0.8, 8]} />
@@ -678,6 +643,35 @@ function InteractiveRoomBox({
           </mesh>
         </group>
       )}
+    </group>
+  );
+}
+
+// =========================================================================
+// 7. Railing Void Atrium (Pagar Pengaman Kaca Koridor Void)
+// =========================================================================
+function AtriumRailingMesh({ height }: { height: number }) {
+  const voidHalfW = 21;
+  const voidHalfD = 17;
+
+  return (
+    <group position={[0, height / 2, 0]}>
+      <mesh position={[0, 0, voidHalfD]}>
+        <boxGeometry args={[voidHalfW * 2, height, 0.05]} />
+        <meshStandardMaterial color="#E2E8F0" transparent opacity={0.5} roughness={0.3} depthWrite={false} />
+      </mesh>
+      <mesh position={[0, 0, -voidHalfD]}>
+        <boxGeometry args={[voidHalfW * 2, height, 0.05]} />
+        <meshStandardMaterial color="#E2E8F0" transparent opacity={0.5} roughness={0.3} depthWrite={false} />
+      </mesh>
+      <mesh position={[-voidHalfW, 0, 0]}>
+        <boxGeometry args={[0.05, height, voidHalfD * 2]} />
+        <meshStandardMaterial color="#E2E8F0" transparent opacity={0.5} roughness={0.3} depthWrite={false} />
+      </mesh>
+      <mesh position={[voidHalfW, 0, 0]}>
+        <boxGeometry args={[0.05, height, voidHalfD * 2]} />
+        <meshStandardMaterial color="#E2E8F0" transparent opacity={0.5} roughness={0.3} depthWrite={false} />
+      </mesh>
     </group>
   );
 }
