@@ -78,7 +78,7 @@ export function App() {
 
         {/* Right Aside Panel: 1/4 Width (25%) */}
         <aside className="w-1/4 h-full relative rounded-3xl bg-white shadow-xl border border-slate-200/90 overflow-hidden flex flex-col">
-          <SidePanel room={selectedRoom} currentFloor={currentFloor} />
+          <SidePanel room={selectedRoom} currentFloor={currentFloor} floors={floors} />
         </aside>
       </main>
 

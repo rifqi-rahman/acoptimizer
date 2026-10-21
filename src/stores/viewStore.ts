@@ -31,7 +31,7 @@ interface ViewStoreState {
 export const useViewStore = create<ViewStoreState>((set) => ({
   mode: "building",
   selectedFloor: 6, // Default fokus ke Lantai 6 (lokasi ruang uji coba 601)
-  selectedSlotId: "6-U1",
+  selectedSlotId: null, // Awal dibuka menampilkan tinjauan keseluruhan Gedung FST
   layer: "status",
   is2D: false,
   isKiosk: false,
