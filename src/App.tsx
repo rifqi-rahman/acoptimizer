@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { generateEntireBuilding } from "./building/generator";
 import { useMockSimulation } from "./data/MockSimulation";
+import { CompassHUD } from "./features/hud/CompassHUD";
 import { FloorRail } from "./features/hud/FloorRail";
 import { LayerSwitcher } from "./features/hud/LayerSwitcher";
 import { TopBar } from "./features/hud/TopBar";
@@ -60,7 +61,8 @@ export function App() {
         )}
       </main>
 
-      {/* Navigation Rails & Layer Controls */}
+      {/* Navigation Rails, Compass & Layer Controls */}
+      <CompassHUD />
       <FloorRail />
       <LayerSwitcher />
 

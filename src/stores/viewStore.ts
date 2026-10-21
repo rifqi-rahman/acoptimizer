@@ -10,9 +10,11 @@ interface ViewStoreState {
   layer: VisualizationLayer;
   is2D: boolean;
   isKiosk: boolean;
+  cameraAzimuth: number; // Sudut putar kamera dalam radian (untuk kompas 3D)
 
   // Actions
   setMode: (mode: ViewMode) => void;
+  setCameraAzimuth: (azimuth: number) => void;
   selectFloor: (floor: number) => void;
   selectRoom: (slotId: string | null) => void;
   setLayer: (layer: VisualizationLayer) => void;
@@ -28,8 +30,10 @@ export const useViewStore = create<ViewStoreState>((set) => ({
   layer: "status",
   is2D: false,
   isKiosk: false,
+  cameraAzimuth: 0,
 
   setMode: (mode) => set({ mode }),
+  setCameraAzimuth: (cameraAzimuth) => set({ cameraAzimuth }),
   selectFloor: (floor) =>
     set({
       selectedFloor: floor,

@@ -75,23 +75,23 @@ export function generateFloorModel(
     });
   };
 
-  // Sudut-sudut Gedung:
-  // Pojok NW (Barat Laut): Ruang Teknis / Staf
-  addRoom(`${level}-NW`, `Ruang Layanan NW`, "service", -halfW, -halfW + rDepth, halfD - rDepth, halfD, false);
+  // Sudut-sudut Gedung (Nama lokasi bersih tanpa singkatan arah mata angin):
+  // Pojok NW: Ruang Teknis Fasilitas 1
+  addRoom(`${level}-NW`, `Ruang Fasilitas 1`, "service", -halfW, -halfW + rDepth, halfD - rDepth, halfD, false);
 
-  // Pojok NE (Timur Laut): Toilet & Tangga Samping Darurat
-  addRoom(`${level}-NE`, `Toilet & Tangga NE`, "toilet", halfW - rDepth, halfW, halfD - rDepth, halfD, false);
+  // Pojok NE: Toilet & Tangga Darurat 1
+  addRoom(`${level}-NE`, `Toilet & Tangga Darurat 1`, "toilet", halfW - rDepth, halfW, halfD - rDepth, halfD, false);
 
-  // Pojok SW (Barat Daya): Toilet & Tangga Samping Darurat
-  addRoom(`${level}-SW`, `Toilet & Tangga SW`, "toilet", -halfW, -halfW + rDepth, -halfD, -halfD + rDepth, false);
+  // Pojok SW: Toilet & Tangga Darurat 2
+  addRoom(`${level}-SW`, `Toilet & Tangga Darurat 2`, "toilet", -halfW, -halfW + rDepth, -halfD, -halfD + rDepth, false);
 
-  // Pojok SE (Tenggara): Ruang Staf / Gudang Fasilitas
-  addRoom(`${level}-SE`, `Ruang Fasilitas SE`, "service", halfW - rDepth, halfW, -halfD, -halfD + rDepth, false);
+  // Pojok SE: Ruang Fasilitas 2
+  addRoom(`${level}-SE`, `Ruang Fasilitas 2`, "service", halfW - rDepth, halfW, -halfD, -halfD + rDepth, false);
 
-  // Core Utara (Lounge + Tangga Imperial + 2 Lift) di antara U3 dan U4
+  // Core Utara (Lounge + Tangga Imperial + 2 Lift)
   addRoom(
     `${level}-CU`,
-    level === 1 ? "Lobby Sarjana & Core Utara" : "Lounge & Core Utara",
+    level === 1 ? "Lobby Sarjana & Tangga Utama" : "Lounge & Tangga Utama",
     level === 1 ? "lobby" : "core",
     -coreW / 2,
     coreW / 2,
@@ -100,10 +100,10 @@ export function generateFloorModel(
     true
   );
 
-  // Core Selatan (Lounge + Tangga Imperial + 2 Lift) di antara S3 dan S4
+  // Core Selatan (Lounge + Tangga Imperial + 2 Lift)
   addRoom(
     `${level}-CS`,
-    level === 1 ? "Lobby Pascasarjana & Core Selatan" : "Lounge & Core Selatan",
+    level === 1 ? "Lobby Pascasarjana & Tangga Selatan" : "Lounge & Tangga Selatan",
     level === 1 ? "lobby" : "core",
     -coreW / 2,
     coreW / 2,
