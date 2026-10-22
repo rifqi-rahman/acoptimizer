@@ -340,88 +340,164 @@ function AtriumCutawayBalcony() {
 
 // =========================================================================
 // 4. Tangga Imperial & 2 Lift di dalam Core Setengah Lingkaran Sisi Void
-// Berdasarkan Spesifikasi FST: Tangga bercabang 2 ke kiri-kanan, diapit 2 lift
+// Visual geometri berundak (kotak-kotak tangga) di area setengah lingkaran & selasar persegi
 // =========================================================================
-function CutawayCoreStairsAndLifts({ level }: { level: number }) {
+function CoreStairsAndLiftsUnit() {
+  // Anak tangga lurus dari selasar persegi menuju bordes setengah lingkaran
+  const centralSteps = [
+    { z: 1.35, y: 0.42, w: 3.2, d: 0.28 },
+    { z: 1.07, y: 0.35, w: 3.2, d: 0.28 },
+    { z: 0.79, y: 0.28, w: 3.2, d: 0.28 },
+    { z: 0.51, y: 0.21, w: 3.2, d: 0.28 },
+    { z: 0.23, y: 0.14, w: 3.2, d: 0.28 },
+  ];
+
+  // Dua cabang tangga (kiri & kanan) di dalam area setengah lingkaran menjorok ke arah void
+  const branchSteps = [
+    { z: -1.05, y: 0.14, w: 1.4, d: 0.28 },
+    { z: -1.35, y: 0.21, w: 1.4, d: 0.28 },
+    { z: -1.65, y: 0.28, w: 1.4, d: 0.28 },
+    { z: -1.95, y: 0.35, w: 1.4, d: 0.28 },
+    { z: -2.25, y: 0.42, w: 1.4, d: 0.28 },
+  ];
+
   return (
     <group>
-      {/* Core Utara: Tangga Imperial & 2 Lift di dalam Setengah Lingkaran */}
-      <group position={[0, 0, 17.0]}>
-        {/* Bordes Tangga Imperial Tengah di dalam Setengah Lingkaran */}
-        <mesh position={[0, 0.28, -2.0]} castShadow>
-          <boxGeometry args={[3.8, 0.55, 2.6]} />
+      {/* A. Anak Tangga Utama di Selasar Persegi (Kotak-kotak tangga bertingkat) */}
+      {centralSteps.map((s, i) => (
+        <group key={`c-step-${i}`} position={[0, 0, s.z]}>
+          {/* Badan Riser Tangga */}
+          <mesh position={[0, s.y / 2, 0]} castShadow receiveShadow>
+            <boxGeometry args={[s.w, s.y, s.d]} />
+            <meshStandardMaterial color="#E2E8F0" roughness={0.7} />
+          </mesh>
+          {/* Plat Tread Pijakan Tangga */}
+          <mesh position={[0, s.y + 0.01, 0]}>
+            <boxGeometry args={[s.w + 0.04, 0.02, s.d + 0.02]} />
+            <meshStandardMaterial color="#F8FAFC" roughness={0.6} />
+          </mesh>
+          {/* Lis Nosing Anti-Slip Kontras Tinggi (Tampak Jelas dari Atas) */}
+          <mesh position={[0, s.y + 0.022, -s.d / 2 + 0.025]}>
+            <boxGeometry args={[s.w + 0.04, 0.008, 0.05]} />
+            <meshStandardMaterial color="#334155" roughness={0.5} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* Handrail Tangga Utama (Kiri & Kanan) */}
+      {[-1.65, 1.65].map((x, i) => (
+        <group key={`c-rail-${i}`} position={[x, 0, 0]}>
+          <mesh position={[0, 0.7, 0.79]} rotation={[-0.24, 0, 0]}>
+            <boxGeometry args={[0.04, 0.06, 1.5]} />
+            <meshStandardMaterial color="#334155" metalness={0.8} roughness={0.3} />
+          </mesh>
+          <mesh position={[0, 0.45, 1.35]}>
+            <boxGeometry args={[0.04, 0.9, 0.04]} />
+            <meshStandardMaterial color="#475569" metalness={0.8} roughness={0.3} />
+          </mesh>
+          <mesh position={[0, 0.45, 0.23]}>
+            <boxGeometry args={[0.04, 0.9, 0.04]} />
+            <meshStandardMaterial color="#475569" metalness={0.8} roughness={0.3} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* B. Bordes / Landing Tengah Tangga di Titik Transisi Setengah Lingkaran */}
+      <group position={[0, 0, -0.45]}>
+        <mesh position={[0, 0.07, 0]} castShadow receiveShadow>
+          <boxGeometry args={[3.8, 0.14, 0.88]} />
           <meshStandardMaterial color="#E2E8F0" roughness={0.7} />
         </mesh>
-        {/* Anak Tangga Menghubungkan ke Koridor */}
-        <mesh position={[0, 0.14, -0.6]} castShadow>
-          <boxGeometry args={[3.2, 0.28, 1.2]} />
-          <meshStandardMaterial color="#CBD5E1" roughness={0.7} />
+        <mesh position={[0, 0.15, 0]}>
+          <boxGeometry args={[3.84, 0.02, 0.9]} />
+          <meshStandardMaterial color="#F8FAFC" roughness={0.6} />
         </mesh>
-        {/* Cabang Tangga Kiri & Kanan */}
-        <mesh position={[-2.4, 0.45, -0.6]} rotation={[-0.15, 0, 0]} castShadow>
-          <boxGeometry args={[1.3, 0.3, 2.0]} />
-          <meshStandardMaterial color="#CBD5E1" roughness={0.7} />
-        </mesh>
-        <mesh position={[2.4, 0.45, -0.6]} rotation={[-0.15, 0, 0]} castShadow>
-          <boxGeometry args={[1.3, 0.3, 2.0]} />
-          <meshStandardMaterial color="#CBD5E1" roughness={0.7} />
-        </mesh>
-
-        {/* 2 Pintu Lift Bersebelahan Menghadap Koridor */}
-        <mesh position={[-3.4, 1.1, 1.2]} castShadow>
-          <boxGeometry args={[1.6, 2.2, 0.15]} />
-          <meshStandardMaterial color="#64748B" metalness={0.7} roughness={0.3} />
-        </mesh>
-        <mesh position={[3.4, 1.1, 1.2]} castShadow>
-          <boxGeometry args={[1.6, 2.2, 0.15]} />
-          <meshStandardMaterial color="#64748B" metalness={0.7} roughness={0.3} />
-        </mesh>
-
-        {/* Label 3D Core */}
-        <Html position={[0, 2.0, -2.0]} center distanceFactor={45}>
-          <div className="pointer-events-none px-2 py-0.5 rounded-md bg-slate-900/80 backdrop-blur-sm text-[10px] font-bold text-white shadow-md border border-slate-700 whitespace-nowrap">
-            {level === 1 ? "Lobby Sarjana & Tangga Utama" : "Tangga Imperial & 2 Lift (Utara)"}
-          </div>
-        </Html>
       </group>
 
-      {/* Core Selatan: Tangga Imperial & 2 Lift di dalam Setengah Lingkaran */}
-      <group position={[0, 0, -17.0]}>
-        {/* Bordes Tangga Imperial Tengah di dalam Setengah Lingkaran */}
-        <mesh position={[0, 0.28, 2.0]} castShadow>
-          <boxGeometry args={[3.8, 0.55, 2.6]} />
-          <meshStandardMaterial color="#E2E8F0" roughness={0.7} />
-        </mesh>
-        {/* Anak Tangga Menghubungkan ke Koridor */}
-        <mesh position={[0, 0.14, 0.6]} castShadow>
-          <boxGeometry args={[3.2, 0.28, 1.2]} />
-          <meshStandardMaterial color="#CBD5E1" roughness={0.7} />
-        </mesh>
-        {/* Cabang Tangga Kiri & Kanan */}
-        <mesh position={[-2.4, 0.45, 0.6]} rotation={[0.15, 0, 0]} castShadow>
-          <boxGeometry args={[1.3, 0.3, 2.0]} />
-          <meshStandardMaterial color="#CBD5E1" roughness={0.7} />
-        </mesh>
-        <mesh position={[2.4, 0.45, 0.6]} rotation={[0.15, 0, 0]} castShadow>
-          <boxGeometry args={[1.3, 0.3, 2.0]} />
-          <meshStandardMaterial color="#CBD5E1" roughness={0.7} />
-        </mesh>
+      {/* C. Dua Cabang Tangga Ganda di dalam Area Setengah Lingkaran */}
+      {[-2.05, 2.05].map((xBranch, bIdx) => (
+        <group key={`branch-${bIdx}`} position={[xBranch, 0, 0]}>
+          {branchSteps.map((s, i) => (
+            <group key={`b-step-${i}`} position={[0, 0, s.z]}>
+              {/* Badan Riser Tangga Cabang */}
+              <mesh position={[0, s.y / 2, 0]} castShadow receiveShadow>
+                <boxGeometry args={[s.w, s.y, s.d]} />
+                <meshStandardMaterial color="#E2E8F0" roughness={0.7} />
+              </mesh>
+              {/* Plat Tread Pijakan Tangga Cabang */}
+              <mesh position={[0, s.y + 0.01, 0]}>
+                <boxGeometry args={[s.w + 0.04, 0.02, s.d + 0.02]} />
+                <meshStandardMaterial color="#F8FAFC" roughness={0.6} />
+              </mesh>
+              {/* Lis Nosing Anti-Slip */}
+              <mesh position={[0, s.y + 0.022, -s.d / 2 + 0.025]}>
+                <boxGeometry args={[s.w + 0.04, 0.008, 0.05]} />
+                <meshStandardMaterial color="#334155" roughness={0.5} />
+              </mesh>
+            </group>
+          ))}
 
-        {/* 2 Pintu Lift Bersebelahan */}
-        <mesh position={[-3.4, 1.1, -1.2]} castShadow>
-          <boxGeometry args={[1.6, 2.2, 0.15]} />
-          <meshStandardMaterial color="#64748B" metalness={0.7} roughness={0.3} />
-        </mesh>
-        <mesh position={[3.4, 1.1, -1.2]} castShadow>
-          <boxGeometry args={[1.6, 2.2, 0.15]} />
-          <meshStandardMaterial color="#64748B" metalness={0.7} roughness={0.3} />
-        </mesh>
+          {/* Handrail Cabang Luar */}
+          <group position={[bIdx === 0 ? -0.75 : 0.75, 0, 0]}>
+            <mesh position={[0, 0.7, -1.65]} rotation={[0.24, 0, 0]}>
+              <boxGeometry args={[0.04, 0.06, 1.6]} />
+              <meshStandardMaterial color="#334155" metalness={0.8} roughness={0.3} />
+            </mesh>
+            <mesh position={[0, 0.45, -1.05]}>
+              <boxGeometry args={[0.04, 0.9, 0.04]} />
+              <meshStandardMaterial color="#475569" metalness={0.8} roughness={0.3} />
+            </mesh>
+            <mesh position={[0, 0.45, -2.25]}>
+              <boxGeometry args={[0.04, 0.9, 0.04]} />
+              <meshStandardMaterial color="#475569" metalness={0.8} roughness={0.3} />
+            </mesh>
+          </group>
+        </group>
+      ))}
 
-        <Html position={[0, 2.0, 2.0]} center distanceFactor={45}>
-          <div className="pointer-events-none px-2 py-0.5 rounded-md bg-slate-900/80 backdrop-blur-sm text-[10px] font-bold text-white shadow-md border border-slate-700 whitespace-nowrap">
-            {level === 1 ? "Lobby Pascasarjana & Tangga Selatan" : "Tangga Imperial & 2 Lift (Selatan)"}
-          </div>
-        </Html>
+      {/* D. Dua Unit Lift Penumpang di Dinding Selasar Persegi */}
+      {[-3.6, 3.6].map((xLift, i) => (
+        <group key={`lift-${i}`} position={[xLift, 0, 1.3]}>
+          {/* Kusen Pintu Lift */}
+          <mesh position={[0, 1.15, 0]} castShadow>
+            <boxGeometry args={[1.7, 2.3, 0.14]} />
+            <meshStandardMaterial color="#475569" metalness={0.6} roughness={0.4} />
+          </mesh>
+          {/* Daun Pintu Stainless Steel Double Leaf */}
+          <mesh position={[-0.4, 1.1, 0.02]}>
+            <boxGeometry args={[0.76, 2.15, 0.04]} />
+            <meshStandardMaterial color="#94A3B8" metalness={0.8} roughness={0.25} />
+          </mesh>
+          <mesh position={[0.4, 1.1, 0.02]}>
+            <boxGeometry args={[0.76, 2.15, 0.04]} />
+            <meshStandardMaterial color="#94A3B8" metalness={0.8} roughness={0.25} />
+          </mesh>
+          {/* Display Indikator Lantai Digital di Atas Pintu */}
+          <mesh position={[0, 2.1, 0.08]}>
+            <boxGeometry args={[0.45, 0.16, 0.02]} />
+            <meshStandardMaterial color="#0F172A" roughness={0.2} />
+          </mesh>
+          <mesh position={[0, 2.1, 0.095]}>
+            <boxGeometry args={[0.32, 0.08, 0.005]} />
+            <meshStandardMaterial color="#38BDF8" emissive="#38BDF8" emissiveIntensity={0.8} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+}
+
+function CutawayCoreStairsAndLifts({ level: _level }: { level: number }) {
+  return (
+    <group>
+      {/* Core Utara: Tangga & 2 Lift di dalam Setengah Lingkaran + Selasar */}
+      <group position={[0, 0, 17.0]}>
+        <CoreStairsAndLiftsUnit />
+      </group>
+
+      {/* Core Selatan: Tangga & 2 Lift (Diputar 180° menghadap void selatan) */}
+      <group position={[0, 0, -17.0]} rotation={[0, Math.PI, 0]}>
+        <CoreStairsAndLiftsUnit />
       </group>
     </group>
   );
@@ -490,11 +566,11 @@ function SaintekHubLounge({ level }: { level: number }) {
         </group>
       ))}
 
-      {/* Label 3D Saintek Hub */}
+      {/* Label 3D Lounge */}
       <Html position={[0, 2.8, 18.2]} center distanceFactor={42}>
         <div className="pointer-events-none px-2.5 py-1 rounded-full bg-amber-600/90 backdrop-blur-md text-white text-[11px] font-black shadow-lg border border-amber-400/80 flex items-center gap-1.5 whitespace-nowrap">
           <Sparkles className="w-3 h-3 text-amber-200" />
-          <span>Saintek Hub Lounge Lt.{level}</span>
+          <span>Lounge</span>
         </div>
       </Html>
     </group>

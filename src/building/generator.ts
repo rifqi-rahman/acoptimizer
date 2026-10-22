@@ -110,14 +110,12 @@ export function generateFloorModel(
     true
   );
 
-  // Core Utara (Lounge + Tangga Imperial + 2 Lift)
+  // Core Utara (Lounge + Tangga + 2 Lift)
   addRoom(
     `${level}-CU`,
     level === 1
       ? "Lobby Sarjana & Resepsionis"
-      : level === 2
-      ? "Lounge Dekanat & Tangga Utama"
-      : `Saintek Hub Lounge ${level} (Utara)`,
+      : "Lounge",
     level === 1 ? "lobby" : "core",
     -coreW / 2,
     coreW / 2,
@@ -126,14 +124,12 @@ export function generateFloorModel(
     true
   );
 
-  // Core Selatan (Lounge + Tangga Imperial + 2 Lift)
+  // Core Selatan (Lounge + Tangga + 2 Lift)
   addRoom(
     `${level}-CS`,
     level === 1
       ? "Lobby Pascasarjana & Resepsionis"
-      : level === 2
-      ? "Lounge Pascasarjana & Tangga Selatan"
-      : `Saintek Hub Lounge ${level} (Selatan)`,
+      : "Lounge",
     level === 1 ? "lobby" : "core",
     -coreW / 2,
     coreW / 2,
