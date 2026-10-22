@@ -25,11 +25,11 @@ export const Floor3DCutaway: React.FC<Floor3DCutawayProps> = ({
 
   return (
     <group position={[0, 0, 0]}>
-      {/* 1. Pelat Dasar Lantai dengan Lubang Void Atrium */}
+      {/* 1. Pelat Dasar Lantai dengan Lubang Void Atrium (Permukaan atas di y = -0.02, bebas z-fighting) */}
       <FloorCutawayBase floor={floor} />
 
-      {/* 2. Dinding Perimeter Bertema FST (Krem + Pilaster Coral) */}
-      <CutawayPerimeterWalls />
+      {/* 2. Dinding Perimeter Bertema FST (Hanya dirender saat mode lantai atau saat fasad luar disembunyikan agar tidak z-fighting dengan fasad) */}
+      {(!isBuildingStack || !objectFilters.roofAndFacade) && <CutawayPerimeterWalls />}
 
       {/* 3. Selasar Koridor Void Melingkar dengan Tanaman Gantung */}
       <AtriumCutawayBalcony
@@ -38,22 +38,25 @@ export const Floor3DCutaway: React.FC<Floor3DCutawayProps> = ({
         level={floor.level}
       />
 
-      {/* 4. Tangga Balok Setengah Lingkaran & 4 Unit Lift di Sisi Void/Core */}
+      {/* 4. Tangga Balok Setengah Lingkaran & 4 Unit Lift di Sisi Void/Core
+          (Saat full-view gedung, silinder tangga tertutup rapat sehingga mesh tangga di dalamnya di-cull untuk performa 60fps) */}
       <CutawayCoreStairsAndLifts
         level={floor.level}
-        showStairs={objectFilters.stairs}
+        showStairs={objectFilters.stairs && !isBuildingStack}
         showLifts={objectFilters.lifts}
       />
 
       {/* 5. Saintek Hub Lounge di Tengah Lantai */}
       <SaintekHubLounge
         level={floor.level}
-        showFurniture={objectFilters.furniture}
+        showFurniture={objectFilters.furniture && !isBuildingStack}
         showTrees={objectFilters.trees}
       />
 
       {/* 6. Ruang Teater Amphitheater Berundak di Sudut Timur */}
-      {objectFilters.furniture && <TheaterAmphitheaterSeating level={floor.level} />}
+      {objectFilters.furniture && !isBuildingStack && (
+        <TheaterAmphitheaterSeating level={floor.level} />
+      )}
 
       {/* 7. Seluruh Ruangan Interaktif (Warna Heatmap / Status IoT & Furnitur Simbolis) */}
       {floor.rooms.map((room) => {
@@ -75,7 +78,8 @@ export const Floor3DCutaway: React.FC<Floor3DCutawayProps> = ({
             color={color}
             isSelected={isSelected}
             isHovered={isHovered}
-            showFurniture={objectFilters.furniture}
+            isBuildingStack={isBuildingStack}
+            showFurniture={objectFilters.furniture && (!isBuildingStack || room.hasDevice)}
             showLabel={objectFilters.roomLabels && (!isBuildingStack || room.hasDevice)}
             onClick={() => onRoomSelect(room.slotId)}
             onPointerOver={() => setHoveredSlotId(room.slotId)}
@@ -89,7 +93,7 @@ export const Floor3DCutaway: React.FC<Floor3DCutawayProps> = ({
 
 // =========================================================================
 // 1. Pelat Lantai Dasar dengan Void Atrium & Potongan Datar Setengah Lingkaran
-// Sisi Utara & Selatan Menghadap ke Void (Lokasi Tangga Imperial & 2 Lift)
+// Permukaan atas berada di y = -0.02 (dari -0.32 s/d -0.02) agar 100% bebas glitch/z-fighting!
 // =========================================================================
 function FloorCutawayBase({ floor }: { floor: FloorModel }) {
   // Pelat Utama dengan Lubang Void Persegi
@@ -111,7 +115,6 @@ function FloorCutawayBase({ floor }: { floor: FloorModel }) {
   }, [floor]);
 
   // Potongan Datar Setengah Lingkaran Lantai Sisi Utara (Menghadap Void Atrium)
-  // Menjorok dari Z = 17.0 ke Z = 12.6, radius 4.4m
   const northSlabShape = useMemo(() => {
     const s = new THREE.Shape();
     s.moveTo(-4.4, -17.0);
@@ -121,7 +124,6 @@ function FloorCutawayBase({ floor }: { floor: FloorModel }) {
   }, []);
 
   // Potongan Datar Setengah Lingkaran Lantai Sisi Selatan (Menghadap Void Atrium)
-  // Menjorok dari Z = -17.0 ke Z = -12.6, radius 4.4m
   const southSlabShape = useMemo(() => {
     const s = new THREE.Shape();
     s.moveTo(-4.4, 17.0);
@@ -131,37 +133,22 @@ function FloorCutawayBase({ floor }: { floor: FloorModel }) {
   }, []);
 
   return (
-    <group rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]}>
+    <group rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.32, 0]}>
       {/* 1. Pelat Lantai Utama dengan Lubang Void */}
       <mesh receiveShadow>
-        <extrudeGeometry
-          args={[
-            shape,
-            { depth: 0.4, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05 },
-          ]}
-        />
+        <extrudeGeometry args={[shape, { depth: 0.3, bevelEnabled: false }]} />
         <meshStandardMaterial color="#F8FAFC" roughness={0.85} />
       </mesh>
 
-      {/* 2. Potongan Datar Setengah Lingkaran Sisi Utara (Bordes Tangga/Lift Core Utara) */}
+      {/* 2. Potongan Datar Setengah Lingkaran Sisi Utara */}
       <mesh receiveShadow>
-        <extrudeGeometry
-          args={[
-            northSlabShape,
-            { depth: 0.4, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05 },
-          ]}
-        />
+        <extrudeGeometry args={[northSlabShape, { depth: 0.3, bevelEnabled: false }]} />
         <meshStandardMaterial color="#F8FAFC" roughness={0.85} />
       </mesh>
 
-      {/* 3. Potongan Datar Setengah Lingkaran Sisi Selatan (Bordes Tangga/Lift Core Selatan) */}
+      {/* 3. Potongan Datar Setengah Lingkaran Sisi Selatan */}
       <mesh receiveShadow>
-        <extrudeGeometry
-          args={[
-            southSlabShape,
-            { depth: 0.4, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05 },
-          ]}
-        />
+        <extrudeGeometry args={[southSlabShape, { depth: 0.3, bevelEnabled: false }]} />
         <meshStandardMaterial color="#F8FAFC" roughness={0.85} />
       </mesh>
     </group>
@@ -896,6 +883,7 @@ function InteractiveRoomBox({
   isHovered,
   showFurniture,
   showLabel,
+  isBuildingStack = false,
   onClick,
   onPointerOver,
   onPointerOut,
@@ -906,6 +894,7 @@ function InteractiveRoomBox({
   isHovered: boolean;
   showFurniture: boolean;
   showLabel: boolean;
+  isBuildingStack?: boolean;
   onClick: () => void;
   onPointerOver: () => void;
   onPointerOut: () => void;
@@ -946,9 +935,9 @@ function InteractiveRoomBox({
       {/* Lantai Ruang (Interaktif: Berwarna Aktif untuk Ruang Ber-IoT R.601, Netral untuk Ruang Tanpa IoT) */}
       {!isCoreLounge && (
         <mesh
-          position={[0, 0.06, 0]}
+          position={[0, 0.02, 0]}
           rotation={[-Math.PI / 2, 0, 0]}
-          receiveShadow
+          receiveShadow={!isBuildingStack}
           onClick={(e) => {
             e.stopPropagation();
             onClick();
@@ -977,11 +966,11 @@ function InteractiveRoomBox({
           {isStackedAlongZ ? (
             <>
               {/* Partisi Utara & Selatan (Memisahkan antar-ruangan di Sayap Barat & Timur, misal Lab 714 - 715 - 716) */}
-              <mesh position={[0, wallH / 2, -room.size[1] * 0.5]} castShadow receiveShadow>
+              <mesh position={[0, wallH / 2, -room.size[1] * 0.5]} castShadow={!isBuildingStack} receiveShadow={!isBuildingStack}>
                 <boxGeometry args={[room.size[0], wallH, 0.2]} />
                 <meshStandardMaterial color="#FFFFFF" roughness={0.8} />
               </mesh>
-              <mesh position={[0, wallH / 2, room.size[1] * 0.5]} castShadow receiveShadow>
+              <mesh position={[0, wallH / 2, room.size[1] * 0.5]} castShadow={!isBuildingStack} receiveShadow={!isBuildingStack}>
                 <boxGeometry args={[room.size[0], wallH, 0.2]} />
                 <meshStandardMaterial color="#FFFFFF" roughness={0.8} />
               </mesh>
@@ -989,11 +978,11 @@ function InteractiveRoomBox({
           ) : (
             <>
               {/* Partisi Kiri & Kanan Tepat di Tepi Batas (±0.5) sehingga Menyatu Tunggal (Contoh R.707 - R.708 - R.709) */}
-              <mesh position={[-room.size[0] * 0.5, wallH / 2, 0]} castShadow receiveShadow>
+              <mesh position={[-room.size[0] * 0.5, wallH / 2, 0]} castShadow={!isBuildingStack} receiveShadow={!isBuildingStack}>
                 <boxGeometry args={[0.2, wallH, room.size[1]]} />
                 <meshStandardMaterial color="#FFFFFF" roughness={0.8} />
               </mesh>
-              <mesh position={[room.size[0] * 0.5, wallH / 2, 0]} castShadow receiveShadow>
+              <mesh position={[room.size[0] * 0.5, wallH / 2, 0]} castShadow={!isBuildingStack} receiveShadow={!isBuildingStack}>
                 <boxGeometry args={[0.2, wallH, room.size[1]]} />
                 <meshStandardMaterial color="#FFFFFF" roughness={0.8} />
               </mesh>

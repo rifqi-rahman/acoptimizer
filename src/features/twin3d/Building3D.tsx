@@ -99,27 +99,28 @@ function GroundCampusEnvironment({
   showCars: boolean;
   showTrees: boolean;
 }) {
+  // Diletakkan di y = -0.42 (di bawah dasar pelat Lantai 1 y = -0.32) agar 100% bebas z-fighting / glitch!
   return (
-    <group position={[0, -0.2, 0]}>
+    <group position={[0, -0.42, 0]}>
       {/* 1. Bidang Tanah Utama Kampus (Abu-abu Muda Netral Bersih) */}
-      <mesh position={[0, -0.2, 0]} receiveShadow>
+      <mesh position={[0, -0.25, 0]} receiveShadow>
         <boxGeometry args={[116, 0.4, 102]} />
         <meshStandardMaterial color="#E2E8F0" roughness={0.9} />
       </mesh>
 
       {/* 2. Rumput Hijau Taman di Keliling Gedung */}
-      <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+      <mesh position={[0, 0.0, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[108, 94]} />
         <meshStandardMaterial color="#86EFAC" roughness={0.8} />
       </mesh>
 
       {/* 3. Jalan Aspal Akses & Parkir Depan (Utara & Selatan) */}
-      <mesh position={[0, 0.05, 37.0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+      <mesh position={[0, 0.04, 37.0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[84, 16]} />
         <meshStandardMaterial color={FST_COLORS.asphaltGray} roughness={0.85} />
       </mesh>
 
-      <mesh position={[0, 0.05, -37.0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+      <mesh position={[0, 0.04, -37.0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[84, 16]} />
         <meshStandardMaterial color={FST_COLORS.asphaltGray} roughness={0.85} />
       </mesh>
@@ -202,19 +203,19 @@ function AtriumCourtyardGarden({
   showFurniture: boolean;
 }) {
   return (
-    <group position={[0, 0, 0]}>
+    <group position={[0, -0.35, 0]}>
       {/* 1. Rumput Hijau Lapangan Taman Atrium */}
-      <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+      <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[41.0, 33.0]} />
         <meshStandardMaterial color={FST_COLORS.lawnGreen} roughness={0.8} />
       </mesh>
 
       {/* 2. Jalur Setapak Paving Pejalan Kaki Melintang di Taman */}
-      <mesh position={[0, 0.08, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[3.2, 32.5]} />
         <meshStandardMaterial color="#CBD5E1" roughness={0.7} />
       </mesh>
-      <mesh position={[0, 0.08, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh position={[0, 0.07, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[40.5, 3.2]} />
         <meshStandardMaterial color="#CBD5E1" roughness={0.7} />
       </mesh>

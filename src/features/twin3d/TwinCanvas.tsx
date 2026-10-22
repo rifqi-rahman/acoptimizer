@@ -1,6 +1,6 @@
 import React, { Suspense, useEffect, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls, ContactShadows, Environment } from "@react-three/drei";
+import { OrbitControls, Environment } from "@react-three/drei";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import * as THREE from "three";
 import { FloorModel } from "../../building/params";
@@ -44,8 +44,14 @@ function TwinCameraController({ floors }: { floors: FloorModel[] }) {
     } else if (mode === "floor" || !activeRoom) {
       const yFloor = -12 + (selectedFloor - 1) * 4.6;
       desiredTargetRef.current.set(0, yFloor, 0);
-      // View default saat fokus ke lantai: Tampak Atas (Top-Down)
-      desiredPosRef.current.set(0, yFloor + 92, 0.05);
+      // View default saat fokus ke lantai: Tampak Atas Lurus Rapi (Azimuth = 0, Utara di bawah)
+      desiredPosRef.current.set(0, yFloor + 92, 1.2);
+      // Langsung luruskan sumbu X dan Z agar tidak miring mengikuti rotasi gedung sebelumnya
+      camera.position.set(0, Math.max(camera.position.y, yFloor + 60), 12);
+      if (controlsRef.current) {
+        controlsRef.current.target.set(0, yFloor, 0);
+        controlsRef.current.update();
+      }
     } else if (mode === "room" && activeRoom) {
       const yFloor = -12 + (selectedFloor - 1) * 4.6;
       const rx = activeRoom.center[0];
@@ -53,7 +59,7 @@ function TwinCameraController({ floors }: { floors: FloorModel[] }) {
       desiredTargetRef.current.set(rx, yFloor + 1, rz);
       desiredPosRef.current.set(rx + 12, yFloor + 26, rz + 14);
     }
-  }, [mode, selectedFloor, selectedSlotId, activeRoom]);
+  }, [mode, selectedFloor, selectedSlotId, activeRoom, camera]);
 
   // Handler reset orientasi kamera ke Arah Utara saat tombol kompas ditekan
   useEffect(() => {
@@ -65,10 +71,15 @@ function TwinCameraController({ floors }: { floors: FloorModel[] }) {
       } else {
         const yFloor = -12 + (selectedFloor - 1) * 4.6;
         desiredTargetRef.current.set(0, yFloor, 0);
-        desiredPosRef.current.set(0, yFloor + 92, 0.05);
+        desiredPosRef.current.set(0, yFloor + 92, 1.2);
+        camera.position.set(0, yFloor + 92, 1.2);
+        if (controlsRef.current) {
+          controlsRef.current.target.set(0, yFloor, 0);
+          controlsRef.current.update();
+        }
       }
     }
-  }, [resetCameraTrigger, mode, selectedFloor]);
+  }, [resetCameraTrigger, mode, selectedFloor, camera]);
 
   useFrame((_, delta) => {
     if (!controlsRef.current) return;
@@ -79,15 +90,24 @@ function TwinCameraController({ floors }: { floors: FloorModel[] }) {
 
     // Animasi transisi kamera yang mulus dan elastis (Damping)
     if (isTransitioningRef.current) {
-      const lerpSpeed = Math.min(delta * 4.0, 0.15);
+      const lerpSpeed = Math.min(delta * 5.0, 0.18);
 
       controlsRef.current.target.lerp(desiredTargetRef.current, lerpSpeed);
       camera.position.lerp(desiredPosRef.current, lerpSpeed);
 
+      if (mode === "floor") {
+        // Jaga agar sumbu X selalu 0 sempurna saat transisi ke tampak atas lantai
+        camera.position.x = 0;
+        controlsRef.current.target.x = 0;
+      }
+
       const distTarget = controlsRef.current.target.distanceTo(desiredTargetRef.current);
       const distPos = camera.position.distanceTo(desiredPosRef.current);
 
-      if (distTarget < 0.2 && distPos < 0.3) {
+      if (distTarget < 0.15 && distPos < 0.2) {
+        camera.position.copy(desiredPosRef.current);
+        controlsRef.current.target.copy(desiredTargetRef.current);
+        controlsRef.current.update();
         isTransitioningRef.current = false;
       }
     }
@@ -112,7 +132,7 @@ function TwinCameraController({ floors }: { floors: FloorModel[] }) {
 }
 
 export const TwinCanvas: React.FC<TwinCanvasProps> = ({ floors }) => {
-  const { mode, isGrayscale } = useViewStore();
+  const { isGrayscale } = useViewStore();
 
   return (
     <div
@@ -123,23 +143,23 @@ export const TwinCanvas: React.FC<TwinCanvasProps> = ({ floors }) => {
       <Canvas
         shadows
         camera={{ position: [75, 58, 88], fov: 38 }}
-        dpr={[1, 2]}
+        dpr={[1, 1.5]}
       >
         {/* World Background bernuansa langit kampus tropis cerah */}
         <color attach="background" args={["#E5EDF4"]} />
         <fog attach="fog" args={["#E5EDF4", 150, 320]} />
 
         {/* Pencahayaan Lembut Alami */}
-        <ambientLight intensity={0.8} />
+        <ambientLight intensity={0.85} />
 
         {/* Sinar Matahari Utama (Warm Directional Light) */}
         <directionalLight
           position={[55, 80, 45]}
           intensity={1.35}
           castShadow
-          shadow-mapSize-width={2048}
-          shadow-mapSize-height={2048}
-          shadow-bias={-0.0001}
+          shadow-mapSize-width={1024}
+          shadow-mapSize-height={1024}
+          shadow-bias={-0.0004}
         />
 
         {/* Cahaya Pengisi Lembut (Cool Sky Fill Light) */}
@@ -147,15 +167,6 @@ export const TwinCanvas: React.FC<TwinCanvasProps> = ({ floors }) => {
 
         <Suspense fallback={null}>
           <Building3D floors={floors} />
-          {mode === "building" && (
-            <ContactShadows
-              position={[0, -12.18, 0]}
-              opacity={0.4}
-              scale={120}
-              blur={2.2}
-              far={18}
-            />
-          )}
           <Environment preset="city" />
         </Suspense>
 
