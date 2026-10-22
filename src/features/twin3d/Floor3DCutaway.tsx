@@ -531,11 +531,86 @@ function CutawayCoreStairsAndLifts({ level: _level }: { level: number }) {
         <CoreCutawayStairs />
       </group>
 
-      {/* 2 Unit Lift Sisi Selatan: Menempel di Dinding Bergaris Merah Selatan (Z = -27.7) Menghadap Masuk (+Z) */}
+      {/* 2 Unit Lift Sisi Selatan: Menempel di Dinding Bergaris Merah Selatan (Z = -27.7), Diberi Jarak Lebar */}
       <group position={[0, 0, 0]}>
-        <LiftUnit position={[-2.2, 0, -27.7]} rotation={[0, 0, 0]} />
-        <LiftUnit position={[2.2, 0, -27.7]} rotation={[0, 0, 0]} />
+        <LiftUnit position={[-4.5, 0, -27.7]} rotation={[0, 0, 0]} />
+        <LiftUnit position={[4.5, 0, -27.7]} rotation={[0, 0, 0]} />
       </group>
+    </group>
+  );
+}
+
+// Kursi Bar Kayu Tinggi 4 Kaki (Sesuai Foto Asli Saintek Hub)
+function WoodenBarStool({ position }: { position: [number, number, number] }) {
+  const [x, y, z] = position;
+  return (
+    <group position={[x, y, z]}>
+      {/* Dudukan Kursi Kayu Persegi */}
+      <mesh position={[0, 0.62, 0]} castShadow>
+        <boxGeometry args={[0.38, 0.05, 0.38]} />
+        <meshStandardMaterial color="#D97706" roughness={0.5} />
+      </mesh>
+      {/* 4 Kaki Kayu Miring */}
+      {[-0.14, 0.14].map((lx, i) =>
+        [-0.14, 0.14].map((lz, j) => (
+          <mesh key={`${i}-${j}`} position={[lx, 0.3, lz]}>
+            <boxGeometry args={[0.04, 0.6, 0.04]} />
+            <meshStandardMaterial color="#B45309" roughness={0.6} />
+          </mesh>
+        ))
+      )}
+      {/* Pijakan Kaki (Footrest Crossbar) */}
+      <mesh position={[0, 0.2, 0]}>
+        <boxGeometry args={[0.32, 0.03, 0.32]} />
+        <meshStandardMaterial color="#92400E" roughness={0.6} />
+      </mesh>
+    </group>
+  );
+}
+
+// Meja Belajar Komunal & Bangku Rangka Hitam (Sesuai Foto Asli Saintek Hub)
+function CommunalTableSet({ position }: { position: [number, number, number] }) {
+  const [x, y, z] = position;
+  return (
+    <group position={[x, y, z]}>
+      {/* Daun Meja Kayu Hangat */}
+      <mesh position={[0, 0.62, 0]} castShadow>
+        <boxGeometry args={[2.2, 0.07, 0.95]} />
+        <meshStandardMaterial color="#78350F" roughness={0.55} />
+      </mesh>
+      {/* Rangka Kaki Metal Hitam Model Trapesium / A-Frame (Foto Asli) */}
+      {[-0.85, 0.85].map((lx, i) => (
+        <group key={i} position={[lx, 0, 0]}>
+          <mesh position={[0, 0.3, 0]}>
+            <boxGeometry args={[0.06, 0.6, 0.88]} />
+            <meshStandardMaterial color="#0F172A" roughness={0.4} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* Bangku Kayu Sisi Depan */}
+      <mesh position={[0, 0.32, -0.65]} castShadow>
+        <boxGeometry args={[2.0, 0.05, 0.32]} />
+        <meshStandardMaterial color="#92400E" roughness={0.55} />
+      </mesh>
+      {[-0.75, 0.75].map((bx, i) => (
+        <mesh key={`bf-${i}`} position={[bx, 0.16, -0.65]}>
+          <boxGeometry args={[0.05, 0.32, 0.28]} />
+          <meshStandardMaterial color="#0F172A" roughness={0.4} />
+        </mesh>
+      ))}
+
+      {/* Bangku Kayu Sisi Belakang */}
+      <mesh position={[0, 0.32, 0.65]} castShadow>
+        <boxGeometry args={[2.0, 0.05, 0.32]} />
+        <meshStandardMaterial color="#92400E" roughness={0.55} />
+      </mesh>
+      {[-0.75, 0.75].map((bx, i) => (
+        <mesh key={`bb-${i}`} position={[bx, 0.16, 0.65]}>
+          <boxGeometry args={[0.05, 0.32, 0.28]} />
+          <meshStandardMaterial color="#0F172A" roughness={0.4} />
+        </mesh>
+      ))}
     </group>
   );
 }
@@ -543,7 +618,7 @@ function CutawayCoreStairsAndLifts({ level: _level }: { level: number }) {
 // =========================================================================
 // 5. Saintek Hub Lounge di Tengah Lantai
 // Sesuai Foto Asli (lobby-lounge-area-in-the-middle-of-every-floor.png & Foto Lift):
-// 2 Lift Menempel di Dinding Bergaris Merah (Z = 27.7), Dinding Bata & Banner Biru, Meja & Benches, Pot Lidah Mertua
+// 2 Lift Berjauhan di Dinding Bergaris Merah (Z = 27.7), Kursi-Kursi & Meja Komunal di Tengah, Pot Lidah Mertua
 // =========================================================================
 function SaintekHubLounge({ level }: { level: number }) {
   if (level === 1) return null; // Lantai 1 adalah area lobby & void taman
@@ -557,67 +632,70 @@ function SaintekHubLounge({ level }: { level: number }) {
       </mesh>
 
       {/* KEDUA LIFT TERTEMPEL DI SISI DINDING DENGAN GARIS MERAH (Z = 27.7) */}
-      {/* Menghadap masuk ke dalam lounge / koridor (arah -Z) */}
-      <LiftUnit position={[-2.2, 0, 27.7]} rotation={[0, Math.PI, 0]} />
-      <LiftUnit position={[2.2, 0, 27.7]} rotation={[0, Math.PI, 0]} />
+      {/* Diberi jarak lebih jauh antara kedua lift (X = -4.5 dan X = 4.5) */}
+      <LiftUnit position={[-4.5, 0, 27.7]} rotation={[0, Math.PI, 0]} />
+      <LiftUnit position={[4.5, 0, 27.7]} rotation={[0, Math.PI, 0]} />
 
-      {/* Dinding Biru Banner Visi "Innovation, Green, Humanity" di Antara Kedua Lift (Foto Asli) */}
+      {/* Dinding Biru Banner Visi "Innovation, Green, Humanity" di Tengah Antara Kedua Lift (Foto Asli) */}
       <mesh position={[0, 1.2, 27.75]}>
-        <boxGeometry args={[2.2, 2.2, 0.06]} />
+        <boxGeometry args={[6.8, 2.2, 0.06]} />
         <meshStandardMaterial color="#1E40AF" roughness={0.5} />
       </mesh>
 
-      {/* Sisi Kiri: Dinding Bata Merah & Jendela Bar (Foto Asli) */}
-      <mesh position={[-5.4, 1.2, 27.75]} castShadow>
-        <boxGeometry args={[2.8, 2.2, 0.08]} />
-        <meshStandardMaterial color={FST_COLORS.roofTile} roughness={0.8} />
-      </mesh>
-      {/* Jendela Bar */}
-      <mesh position={[-5.4, 1.5, 27.72]}>
-        <boxGeometry args={[2.4, 0.9, 0.04]} />
-        <meshStandardMaterial color="#0284C7" transparent opacity={0.6} roughness={0.1} />
-      </mesh>
-      {/* Meja Bar Panjang */}
-      <mesh position={[-5.4, 0.9, 27.2]} castShadow>
-        <boxGeometry args={[2.6, 0.08, 0.55]} />
+      {/* Meja Bar Panjang di Bawah Banner Visi (Foto Asli) */}
+      <mesh position={[0, 0.9, 27.2]} castShadow>
+        <boxGeometry args={[6.4, 0.08, 0.45]} />
         <meshStandardMaterial color="#F8FAFC" roughness={0.4} />
       </mesh>
 
-      {/* Sisi Kanan: Papan Foto Tematik Berbingkai Bata (Foto Asli) */}
-      <mesh position={[5.4, 1.2, 27.75]} castShadow>
-        <boxGeometry args={[2.8, 2.2, 0.08]} />
+      {/* Kursi Bar Kayu Berjejer di Meja Bar Banner Tengah (Foto Asli) */}
+      {[-2.3, -0.8, 0.8, 2.3].map((x, i) => (
+        <WoodenBarStool key={`stool-c-${i}`} position={[x, 0, 26.6]} />
+      ))}
+
+      {/* Sisi Kiri: Dinding Bata Merah & Jendela Bar (Foto Asli) */}
+      <mesh position={[-6.2, 1.2, 27.75]} castShadow>
+        <boxGeometry args={[1.4, 2.2, 0.08]} />
         <meshStandardMaterial color={FST_COLORS.roofTile} roughness={0.8} />
       </mesh>
-      <mesh position={[5.4, 1.25, 27.72]}>
-        <boxGeometry args={[2.2, 1.6, 0.04]} />
-        <meshStandardMaterial color="#FBBF24" roughness={0.6} />
+      {/* Jendela Bar Samping */}
+      <mesh position={[-6.7, 1.5, 24.5]} rotation={[0, Math.PI / 2, 0]}>
+        <boxGeometry args={[3.2, 0.9, 0.04]} />
+        <meshStandardMaterial color="#0284C7" transparent opacity={0.6} roughness={0.1} />
       </mesh>
+      {/* Meja Bar Jendela Samping */}
+      <mesh position={[-6.4, 0.9, 24.5]} rotation={[0, Math.PI / 2, 0]} castShadow>
+        <boxGeometry args={[3.0, 0.08, 0.5]} />
+        <meshStandardMaterial color="#F8FAFC" roughness={0.4} />
+      </mesh>
+      {/* Kursi Bar Kayu di Bawah Jendela Samping */}
+      {[23.2, 24.4, 25.6].map((z, i) => (
+        <WoodenBarStool key={`stool-w-${i}`} position={[-5.8, 0, z]} />
+      ))}
 
       {/* Kisi-kisi Balok Kayu Plafon Sisi Kiri (Wooden Slat Pergola Trellis - Foto Asli) */}
       {[-6.2, -5.6, -5.0, -4.4, -3.8].map((x, i) => (
-        <mesh key={i} position={[x, 2.4, 25.0]}>
+        <mesh key={i} position={[x, 2.4, 24.5]}>
           <boxGeometry args={[0.14, 0.16, 4.8]} />
           <meshStandardMaterial color="#B45309" roughness={0.5} />
         </mesh>
       ))}
 
-      {/* Meja Komunal & Bangku Kayu Mahasiswa di Depan Lift (Foto Asli) */}
-      {[-2.2, 2.2].map((x, i) => (
-        <group key={i} position={[x, 0, 24.2]}>
-          <mesh position={[0, 0.45, 0]} castShadow>
-            <boxGeometry args={[2.0, 0.08, 0.9]} />
-            <meshStandardMaterial color="#78350F" roughness={0.6} />
-          </mesh>
-          <mesh position={[0, 0.25, -0.6]} castShadow>
-            <boxGeometry args={[1.8, 0.06, 0.28]} />
-            <meshStandardMaterial color="#451A03" roughness={0.6} />
-          </mesh>
-          <mesh position={[0, 0.25, 0.6]} castShadow>
-            <boxGeometry args={[1.8, 0.06, 0.28]} />
-            <meshStandardMaterial color="#451A03" roughness={0.6} />
-          </mesh>
-        </group>
-      ))}
+      {/* Lampu Gantung Cincin Modern di Bawah Pergola Kayu (Foto Asli) */}
+      <mesh position={[-5.0, 2.1, 24.5]}>
+        <torusGeometry args={[0.35, 0.03, 16, 32]} />
+        <meshStandardMaterial color="#FEF08A" emissive="#FEF08A" emissiveIntensity={0.8} />
+      </mesh>
+
+      {/* Sisi Kanan: Papan Foto Tematik Berbingkai Bata (Foto Asli) */}
+      <mesh position={[6.2, 1.2, 27.75]} castShadow>
+        <boxGeometry args={[1.4, 2.2, 0.08]} />
+        <meshStandardMaterial color={FST_COLORS.roofTile} roughness={0.8} />
+      </mesh>
+
+      {/* DI TENGAH RUANG LOUNGE: KURSI-KURSI DAN MEJA BELAJAR KOMUNAL (Sesuai Foto Asli) */}
+      <CommunalTableSet position={[-1.7, 0, 22.5]} />
+      <CommunalTableSet position={[1.7, 0, 22.5]} />
 
       {/* Pot Semen dengan Tanaman Sansevieria / Lidah Mertua di Batas Selasar (Foto Asli) */}
       {[-4.6, 0, 4.6].map((x, i) => (
@@ -632,14 +710,6 @@ function SaintekHubLounge({ level }: { level: number }) {
           </mesh>
         </group>
       ))}
-
-      {/* Label 3D Lounge (Mengambang Tepat di Sisi Dinding Garis Merah di Atas Lift) */}
-      <Html position={[0, 2.8, 27.2]} center distanceFactor={42}>
-        <div className="pointer-events-none px-2.5 py-1 rounded-full bg-amber-600/90 backdrop-blur-md text-white text-[11px] font-black shadow-lg border border-amber-400/80 flex items-center gap-1.5 whitespace-nowrap">
-          <Sparkles className="w-3 h-3 text-amber-200" />
-          <span>Lounge</span>
-        </div>
-      </Html>
     </group>
   );
 }
