@@ -57,11 +57,11 @@ export function App() {
       <AppSidebar />
 
       {/* 2. Workspace Utama: Panel Visual 3/4 (Kiri) + Panel Detail 1/4 (Kanan) */}
-      <main className="flex-1 w-full h-full flex gap-3 min-w-0 overflow-hidden">
+      <main className="flex-1 w-full h-full flex gap-3 min-w-0 overflow-hidden relative z-10">
         {/* Visual Container: 3/4 Width (75%) Align Kiri */}
-        <section className="w-3/4 h-full relative rounded-3xl bg-white shadow-xl border border-slate-200/90 overflow-hidden flex flex-col">
-          {/* Visual Canvas (2D / 3D) */}
-          <div className="w-full h-full relative overflow-hidden">
+        <section className="w-3/4 h-full relative rounded-3xl bg-white shadow-xl border border-slate-200/90 overflow-hidden flex flex-col isolate">
+          {/* Visual Canvas (2D / 3D) - Terisolasi di layer z-0 agar elemen 3D Html tidak pernah menembus HUD/Sidebar */}
+          <div className="w-full h-full relative z-0 isolate overflow-hidden">
             {is2D ? (
               <FloorPlan2D floor={currentFloor} />
             ) : (
@@ -69,7 +69,7 @@ export function App() {
             )}
           </div>
 
-          {/* Kontrol HUD Lengkap di Dalam Panel Visual */}
+          {/* Kontrol HUD Lengkap di Dalam Panel Visual (Layer Teratas z-30) */}
           <PanelTopControls />
           <CompassHUD />
           <FloorRail />
@@ -77,7 +77,7 @@ export function App() {
         </section>
 
         {/* Right Aside Panel: 1/4 Width (25%) */}
-        <aside className="w-1/4 h-full relative rounded-3xl bg-white shadow-xl border border-slate-200/90 overflow-hidden flex flex-col">
+        <aside className="w-1/4 h-full relative z-30 rounded-3xl bg-white shadow-xl border border-slate-200/90 overflow-hidden flex flex-col">
           <SidePanel room={selectedRoom} currentFloor={currentFloor} floors={floors} />
         </aside>
       </main>

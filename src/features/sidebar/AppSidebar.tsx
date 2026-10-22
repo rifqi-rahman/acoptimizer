@@ -34,8 +34,8 @@ export const AppSidebar: React.FC = () => {
   }, []);
 
   return (
-    // Footprint tetap w-16 di layout flex agar tidak menggeser panel visual saat memanjang
-    <div className="relative w-16 h-full flex-shrink-0 z-40">
+    // Footprint tetap w-16 di layout flex, dengan z-50 agar selalu berada di layer paling atas
+    <div className="relative w-16 h-full flex-shrink-0 z-50">
       <aside
         ref={sidebarRef}
         onMouseEnter={() => setIsHovered(true)}
@@ -43,7 +43,7 @@ export const AppSidebar: React.FC = () => {
         className={`absolute left-0 top-0 bottom-0 h-full bg-white rounded-3xl border border-slate-200/90 flex flex-col justify-between p-3 transition-[width,box-shadow] duration-300 ease-out select-none overflow-hidden ${
           isHovered
             ? "w-64 shadow-2xl z-50 ring-1 ring-slate-900/5"
-            : "w-16 shadow-xl"
+            : "w-16 shadow-xl z-50"
         }`}
       >
         {/* 1. Header Bagian Atas: App Logo & Brand Title */}

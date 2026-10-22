@@ -221,6 +221,29 @@ function AtriumCutawayBalcony() {
   const voidHalfW = 21.0;
   const voidHalfD = 17.0;
 
+  // Geometri dinding melengkung setengah lingkaran BERLUBANG (Hollow Arc Ring)
+  // untuk Core Utara (menjorok ke Z = +12.6) dan Core Selatan (menjorok ke Z = -12.6),
+  // sehingga bagian dalam setengah lingkaran terbuka (tidak tertutup atap silinder padat).
+  const northArcWallShape = useMemo(() => {
+    const s = new THREE.Shape();
+    s.moveTo(-4.4, -voidHalfD);
+    s.absarc(0, -voidHalfD, 4.4, Math.PI, 0, true);
+    s.lineTo(4.18, -voidHalfD);
+    s.absarc(0, -voidHalfD, 4.18, 0, Math.PI, false);
+    s.closePath();
+    return s;
+  }, [voidHalfD]);
+
+  const southArcWallShape = useMemo(() => {
+    const s = new THREE.Shape();
+    s.moveTo(-4.4, voidHalfD);
+    s.absarc(0, voidHalfD, 4.4, Math.PI, 2 * Math.PI, false);
+    s.lineTo(4.18, voidHalfD);
+    s.absarc(0, voidHalfD, 4.18, 2 * Math.PI, Math.PI, true);
+    s.closePath();
+    return s;
+  }, [voidHalfD]);
+
   return (
     <group>
       {/* A. Dinding Lurus Pembatas Void (Terbuka di Tengah x in [-4.4, 4.4] untuk Akses Core) */}
@@ -254,50 +277,30 @@ function AtriumCutawayBalcony() {
         <meshStandardMaterial color={FST_COLORS.creamWall} roughness={0.8} />
       </mesh>
 
-      {/* B. Dinding Setengah Lingkaran Melengkung Mengelilingi Core Tangga/Lift Menghadap Void */}
-      {/* 1. Silinder Setengah Lingkaran Core Utara (Menjorok ke arah Z = 12.6) */}
-      <mesh position={[0, parapetH / 2, voidHalfD]} castShadow receiveShadow>
-        <cylinderGeometry args={[4.4, 4.4, parapetH, 32, 1, false, Math.PI / 2, Math.PI]} />
-        <meshStandardMaterial color={FST_COLORS.creamWall} roughness={0.75} />
-      </mesh>
-      {/* Lis Garis Merah Coral pada Silinder Utara */}
-      <mesh position={[0, parapetH + 0.04, voidHalfD]}>
-        <cylinderGeometry args={[4.46, 4.46, 0.08, 32, 1, false, Math.PI / 2, Math.PI]} />
-        <meshStandardMaterial color={FST_COLORS.coralRed} roughness={0.7} />
-      </mesh>
-      {/* Roster Balok Kaca Buram pada Silinder Utara */}
-      <mesh position={[0, parapetH / 2, voidHalfD]}>
-        <cylinderGeometry args={[4.38, 4.38, 0.55, 32, 1, false, Math.PI / 2, Math.PI]} />
-        <meshStandardMaterial
-          color={FST_COLORS.glassBlock}
-          transparent
-          opacity={0.65}
-          roughness={0.3}
-          depthWrite={false}
-        />
-      </mesh>
+      {/* B. Dinding Melengkung Setengah Lingkaran (Hollow Ring Wall) Mengelilingi Area Tangga */}
+      <group rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
+        {/* 1. Dinding Lengkung Core Utara */}
+        <mesh castShadow receiveShadow>
+          <extrudeGeometry args={[northArcWallShape, { depth: parapetH, bevelEnabled: false }]} />
+          <meshStandardMaterial color={FST_COLORS.creamWall} roughness={0.75} />
+        </mesh>
+        {/* Lis Merah di Atas Bibir Dinding Lengkung Utara */}
+        <mesh position={[0, 0, parapetH]}>
+          <extrudeGeometry args={[northArcWallShape, { depth: 0.08, bevelEnabled: false }]} />
+          <meshStandardMaterial color={FST_COLORS.coralRed} roughness={0.7} />
+        </mesh>
 
-      {/* 2. Silinder Setengah Lingkaran Core Selatan (Menjorok ke arah Z = -12.6) */}
-      <mesh position={[0, parapetH / 2, -voidHalfD]} castShadow receiveShadow>
-        <cylinderGeometry args={[4.4, 4.4, parapetH, 32, 1, false, -Math.PI / 2, Math.PI]} />
-        <meshStandardMaterial color={FST_COLORS.creamWall} roughness={0.75} />
-      </mesh>
-      {/* Lis Garis Merah Coral pada Silinder Selatan */}
-      <mesh position={[0, parapetH + 0.04, -voidHalfD]}>
-        <cylinderGeometry args={[4.46, 4.46, 0.08, 32, 1, false, -Math.PI / 2, Math.PI]} />
-        <meshStandardMaterial color={FST_COLORS.coralRed} roughness={0.7} />
-      </mesh>
-      {/* Roster Balok Kaca Buram pada Silinder Selatan */}
-      <mesh position={[0, parapetH / 2, -voidHalfD]}>
-        <cylinderGeometry args={[4.38, 4.38, 0.55, 32, 1, false, -Math.PI / 2, Math.PI]} />
-        <meshStandardMaterial
-          color={FST_COLORS.glassBlock}
-          transparent
-          opacity={0.65}
-          roughness={0.3}
-          depthWrite={false}
-        />
-      </mesh>
+        {/* 2. Dinding Lengkung Core Selatan */}
+        <mesh castShadow receiveShadow>
+          <extrudeGeometry args={[southArcWallShape, { depth: parapetH, bevelEnabled: false }]} />
+          <meshStandardMaterial color={FST_COLORS.creamWall} roughness={0.75} />
+        </mesh>
+        {/* Lis Merah di Atas Bibir Dinding Lengkung Selatan */}
+        <mesh position={[0, 0, parapetH]}>
+          <extrudeGeometry args={[southArcWallShape, { depth: 0.08, bevelEnabled: false }]} />
+          <meshStandardMaterial color={FST_COLORS.coralRed} roughness={0.7} />
+        </mesh>
+      </group>
 
       {/* C. Lis Merah & Tanaman Gantung di Dinding Lurus */}
       <mesh position={[-12.7, parapetH + 0.04, voidHalfD]}>
@@ -339,119 +342,46 @@ function AtriumCutawayBalcony() {
 }
 
 // =========================================================================
-// 4. Tangga di dalam Core Setengah Lingkaran Sisi Void (Berseberangan dengan Lift)
-// Visual geometri berundak (kotak-kotak tangga) di area setengah lingkaran & tepi selasar
+// 4. Tangga di dalam Area Setengah Lingkaran Sisi Void (Berseberangan dengan Lift)
+// Disusun dari kumpulan balok bertingkat yang bersih dan masuk sepenuhnya
+// ke dalam area setengah lingkaran.
 // =========================================================================
 function CoreCutawayStairs() {
-  // Anak tangga lurus dari selasar menuju bordes setengah lingkaran
-  const centralSteps = [
-    { z: 0.60, y: 0.35, w: 3.2, d: 0.28 },
-    { z: 0.32, y: 0.28, w: 3.2, d: 0.28 },
-    { z: 0.04, y: 0.21, w: 3.2, d: 0.28 },
-    { z: -0.24, y: 0.14, w: 3.2, d: 0.28 },
-    { z: -0.52, y: 0.07, w: 3.2, d: 0.28 },
-  ];
-
-  // Dua cabang tangga (kiri & kanan) di dalam area setengah lingkaran menjorok ke arah void
-  const branchSteps = [
-    { z: -1.35, y: 0.10, w: 1.4, d: 0.28 },
-    { z: -1.63, y: 0.17, w: 1.4, d: 0.28 },
-    { z: -1.91, y: 0.24, w: 1.4, d: 0.28 },
-    { z: -2.19, y: 0.31, w: 1.4, d: 0.28 },
-    { z: -2.47, y: 0.38, w: 1.4, d: 0.28 },
+  // Kumpulan balok anak tangga yang tersusun bertingkat di dalam area setengah lingkaran
+  // (z = -0.35 s/d -3.45 berada sepenuhnya di dalam setengah lingkaran berjari-jari 4.18m)
+  const stepBlocks = [
+    { z: -0.35, h: 0.12, w: 5.2, d: 0.36 },
+    { z: -0.73, h: 0.24, w: 5.0, d: 0.36 },
+    { z: -1.11, h: 0.36, w: 4.8, d: 0.36 },
+    { z: -1.49, h: 0.48, w: 4.5, d: 0.36 },
+    { z: -1.87, h: 0.60, w: 4.2, d: 0.36 },
+    { z: -2.25, h: 0.72, w: 3.8, d: 0.36 },
+    { z: -2.63, h: 0.84, w: 3.3, d: 0.36 },
+    { z: -3.01, h: 0.96, w: 2.7, d: 0.36 },
+    { z: -3.45, h: 1.08, w: 2.0, d: 0.48 },
   ];
 
   return (
     <group>
-      {/* A. Anak Tangga Utama di Selasar (Kotak-kotak tangga bertingkat) */}
-      {centralSteps.map((s, i) => (
-        <group key={`c-step-${i}`} position={[0, 0, s.z]}>
-          {/* Badan Riser Tangga */}
-          <mesh position={[0, s.y / 2, 0]} castShadow receiveShadow>
-            <boxGeometry args={[s.w, s.y, s.d]} />
-            <meshStandardMaterial color="#E2E8F0" roughness={0.7} />
+      {stepBlocks.map((s, i) => (
+        <group key={`stair-block-${i}`} position={[0, 0, s.z]}>
+          {/* Balok Utama Anak Tangga */}
+          <mesh position={[0, s.h / 2, 0]} castShadow receiveShadow>
+            <boxGeometry args={[s.w, s.h, s.d]} />
+            <meshStandardMaterial color="#CBD5E1" roughness={0.75} />
           </mesh>
-          {/* Plat Tread Pijakan Tangga */}
-          <mesh position={[0, s.y + 0.01, 0]}>
-            <boxGeometry args={[s.w + 0.04, 0.02, s.d + 0.02]} />
+
+          {/* Lapisan Permukaan Pijakan Atas (Tread) */}
+          <mesh position={[0, s.h + 0.01, 0]} receiveShadow>
+            <boxGeometry args={[s.w, 0.02, s.d]} />
             <meshStandardMaterial color="#F8FAFC" roughness={0.6} />
           </mesh>
-          {/* Lis Nosing Anti-Slip Kontras Tinggi (Tampak Jelas dari Atas) */}
-          <mesh position={[0, s.y + 0.022, -s.d / 2 + 0.025]}>
-            <boxGeometry args={[s.w + 0.04, 0.008, 0.05]} />
-            <meshStandardMaterial color="#334155" roughness={0.5} />
-          </mesh>
-        </group>
-      ))}
 
-      {/* Handrail Tangga Utama (Kiri & Kanan) */}
-      {[-1.65, 1.65].map((x, i) => (
-        <group key={`c-rail-${i}`} position={[x, 0, 0]}>
-          <mesh position={[0, 0.58, 0.04]} rotation={[-0.24, 0, 0]}>
-            <boxGeometry args={[0.04, 0.06, 1.4]} />
-            <meshStandardMaterial color="#334155" metalness={0.8} roughness={0.3} />
+          {/* Garis Bibir Anak Tangga (Step Nosing) agar tiap susunan balok tampak tegas */}
+          <mesh position={[0, s.h + 0.022, s.d / 2 - 0.025]}>
+            <boxGeometry args={[s.w, 0.01, 0.04]} />
+            <meshStandardMaterial color="#64748B" roughness={0.5} />
           </mesh>
-          <mesh position={[0, 0.45, 0.6]}>
-            <boxGeometry args={[0.04, 0.8, 0.04]} />
-            <meshStandardMaterial color="#475569" metalness={0.8} roughness={0.3} />
-          </mesh>
-          <mesh position={[0, 0.45, -0.52]}>
-            <boxGeometry args={[0.04, 0.8, 0.04]} />
-            <meshStandardMaterial color="#475569" metalness={0.8} roughness={0.3} />
-          </mesh>
-        </group>
-      ))}
-
-      {/* B. Bordes / Landing Tengah Tangga di Titik Transisi Setengah Lingkaran */}
-      <group position={[0, 0, -0.9]}>
-        <mesh position={[0, 0.04, 0]} castShadow receiveShadow>
-          <boxGeometry args={[3.8, 0.08, 0.85]} />
-          <meshStandardMaterial color="#E2E8F0" roughness={0.7} />
-        </mesh>
-        <mesh position={[0, 0.09, 0]}>
-          <boxGeometry args={[3.84, 0.02, 0.87]} />
-          <meshStandardMaterial color="#F8FAFC" roughness={0.6} />
-        </mesh>
-      </group>
-
-      {/* C. Dua Cabang Tangga Ganda di dalam Area Setengah Lingkaran */}
-      {[-2.05, 2.05].map((xBranch, bIdx) => (
-        <group key={`branch-${bIdx}`} position={[xBranch, 0, 0]}>
-          {branchSteps.map((s, i) => (
-            <group key={`b-step-${i}`} position={[0, 0, s.z]}>
-              {/* Badan Riser Tangga Cabang */}
-              <mesh position={[0, s.y / 2, 0]} castShadow receiveShadow>
-                <boxGeometry args={[s.w, s.y, s.d]} />
-                <meshStandardMaterial color="#E2E8F0" roughness={0.7} />
-              </mesh>
-              {/* Plat Tread Pijakan Tangga Cabang */}
-              <mesh position={[0, s.y + 0.01, 0]}>
-                <boxGeometry args={[s.w + 0.04, 0.02, s.d + 0.02]} />
-                <meshStandardMaterial color="#F8FAFC" roughness={0.6} />
-              </mesh>
-              {/* Lis Nosing Anti-Slip */}
-              <mesh position={[0, s.y + 0.022, -s.d / 2 + 0.025]}>
-                <boxGeometry args={[s.w + 0.04, 0.008, 0.05]} />
-                <meshStandardMaterial color="#334155" roughness={0.5} />
-              </mesh>
-            </group>
-          ))}
-
-          {/* Handrail Cabang Luar */}
-          <group position={[bIdx === 0 ? -0.75 : 0.75, 0, 0]}>
-            <mesh position={[0, 0.58, -1.91]} rotation={[0.24, 0, 0]}>
-              <boxGeometry args={[0.04, 0.06, 1.4]} />
-              <meshStandardMaterial color="#334155" metalness={0.8} roughness={0.3} />
-            </mesh>
-            <mesh position={[0, 0.45, -1.35]}>
-              <boxGeometry args={[0.04, 0.8, 0.04]} />
-              <meshStandardMaterial color="#475569" metalness={0.8} roughness={0.3} />
-            </mesh>
-            <mesh position={[0, 0.45, -2.47]}>
-              <boxGeometry args={[0.04, 0.8, 0.04]} />
-              <meshStandardMaterial color="#475569" metalness={0.8} roughness={0.3} />
-            </mesh>
-          </group>
         </group>
       ))}
     </group>
@@ -1014,7 +944,7 @@ function InteractiveRoomBox({
           </mesh>
 
           {/* Floating Telemetry Pill Khusus Pilot */}
-          <Html position={[0, 2.3, 0]} center distanceFactor={40}>
+          <Html position={[0, 2.3, 0]} center distanceFactor={40} zIndexRange={[10, 0]}>
             <div className="pointer-events-none px-3 py-1.5 rounded-2xl bg-emerald-600/95 backdrop-blur-md text-white shadow-2xl border-2 border-white flex items-center gap-2 whitespace-nowrap animate-bounce">
               <Sparkles className="w-4 h-4 text-emerald-200" />
               <div className="flex flex-col text-left">
@@ -1032,7 +962,7 @@ function InteractiveRoomBox({
 
       {/* Label 3D Teks Nama Ruang (Kecil, Rapi, & Selalu Terbaca) - Dihapus pada lorong terbuka Lantai 1 */}
       {!isPilot && !isFloor1Corridor && !isFloor1Lobby && (
-        <Html position={[0, 1.15, 0]} center distanceFactor={50}>
+        <Html position={[0, 1.15, 0]} center distanceFactor={50} zIndexRange={[10, 0]}>
           <div
             onClick={(e) => {
               e.stopPropagation();
@@ -1053,7 +983,7 @@ function InteractiveRoomBox({
 
       {/* Floating Tooltip Sensor Saat Cursor Hover di Atas Ruangan */}
       {isHovered && !isPilot && (
-        <Html position={[0, 2.0, 0]} center distanceFactor={42}>
+        <Html position={[0, 2.0, 0]} center distanceFactor={42} zIndexRange={[20, 0]}>
           <div className="pointer-events-none p-2.5 rounded-2xl bg-slate-900/95 backdrop-blur-md text-white shadow-2xl border border-slate-700/80 w-44 flex flex-col gap-1.5 z-50">
             <div className="flex items-center justify-between border-b border-slate-700/80 pb-1">
               <span className="text-xs font-black text-slate-100 truncate">

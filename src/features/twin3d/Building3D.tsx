@@ -248,7 +248,7 @@ function FloatingFloorHoverTag({ level, yBase }: { level: number; yBase: number 
   const isPilotFloor = level === 6;
 
   return (
-    <Html position={[0, yBase, 30.5]} center distanceFactor={55}>
+    <Html position={[0, yBase, 30.5]} center distanceFactor={55} zIndexRange={[10, 0]}>
       <div className="pointer-events-none px-3.5 py-1.5 rounded-full bg-slate-900/95 backdrop-blur-md text-white text-xs font-black shadow-2xl border-2 border-blue-500/80 flex items-center gap-2 whitespace-nowrap animate-fade-in">
         <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-ping" />
         <span>Lantai {level} • 24 Ruangan</span>

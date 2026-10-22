@@ -114,7 +114,7 @@ export const TwinCanvas: React.FC<TwinCanvasProps> = ({ floors }) => {
   const { mode } = useViewStore();
 
   return (
-    <div className="w-full h-full relative cursor-grab active:cursor-grabbing bg-[#E5EDF4]">
+    <div className="w-full h-full relative z-0 isolate overflow-hidden cursor-grab active:cursor-grabbing bg-[#E5EDF4]">
       <Canvas
         shadows
         camera={{ position: [75, 58, 88], fov: 38 }}
