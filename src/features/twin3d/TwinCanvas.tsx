@@ -43,14 +43,15 @@ function TwinCameraController({ floors }: { floors: FloorModel[] }) {
       desiredPosRef.current.set(78, 56, 88);
     } else if (mode === "floor" || !activeRoom) {
       const yFloor = -12 + (selectedFloor - 1) * 4.6;
-      desiredTargetRef.current.set(0, yFloor + 1, 0);
-      desiredPosRef.current.set(0, yFloor + 50, 56);
+      desiredTargetRef.current.set(0, yFloor, 0);
+      // View default saat fokus ke lantai: Tampak Atas (Top-Down)
+      desiredPosRef.current.set(0, yFloor + 92, 0.05);
     } else if (mode === "room" && activeRoom) {
       const yFloor = -12 + (selectedFloor - 1) * 4.6;
       const rx = activeRoom.center[0];
       const rz = -activeRoom.center[1];
       desiredTargetRef.current.set(rx, yFloor + 1, rz);
-      desiredPosRef.current.set(rx + 16, yFloor + 22, rz + 18);
+      desiredPosRef.current.set(rx + 12, yFloor + 26, rz + 14);
     }
   }, [mode, selectedFloor, selectedSlotId, activeRoom]);
 
@@ -63,8 +64,8 @@ function TwinCameraController({ floors }: { floors: FloorModel[] }) {
         desiredPosRef.current.set(0, 56, 88);
       } else {
         const yFloor = -12 + (selectedFloor - 1) * 4.6;
-        desiredTargetRef.current.set(0, yFloor + 1, 0);
-        desiredPosRef.current.set(0, yFloor + 50, 56);
+        desiredTargetRef.current.set(0, yFloor, 0);
+        desiredPosRef.current.set(0, yFloor + 92, 0.05);
       }
     }
   }, [resetCameraTrigger, mode, selectedFloor]);
