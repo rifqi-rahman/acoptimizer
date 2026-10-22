@@ -8,6 +8,7 @@ import {
   RotateCcw,
   Sparkles,
 } from "lucide-react";
+import { useShallow } from "zustand/react/shallow";
 import { useRoomStore } from "../../stores/roomStore";
 import { ObjectVisibilityFilters, useViewStore } from "../../stores/viewStore";
 
@@ -21,7 +22,7 @@ const FILTER_ITEMS: { key: keyof ObjectVisibilityFilters; label: string }[] = [
   { key: "roofAndFacade", label: "Atap & Fasad Luar" },
 ];
 
-export const PanelTopControls: React.FC = () => {
+export const PanelTopControls: React.FC = React.memo(function PanelTopControls() {
   const {
     mode,
     selectedFloor,
@@ -33,12 +34,27 @@ export const PanelTopControls: React.FC = () => {
     resetObjectFilters,
     selectFloor,
     selectRoom,
-  } = useViewStore();
-  const { connection, rooms } = useRoomStore();
+  } = useViewStore(
+    useShallow((s) => ({
+      mode: s.mode,
+      selectedFloor: s.selectedFloor,
+      resetToBuilding: s.resetToBuilding,
+      isGrayscale: s.isGrayscale,
+      toggleGrayscale: s.toggleGrayscale,
+      objectFilters: s.objectFilters,
+      toggleObjectFilter: s.toggleObjectFilter,
+      resetObjectFilters: s.resetObjectFilters,
+      selectFloor: s.selectFloor,
+      selectRoom: s.selectRoom,
+    }))
+  );
+  const { connection, isPilotOnline } = useRoomStore(
+    useShallow((s) => ({
+      connection: s.connection,
+      isPilotOnline: s.rooms["6-U1"]?.online ?? false,
+    }))
+  );
   const [filterOpen, setFilterOpen] = useState(false);
-
-  const pilotRoom = rooms["6-U1"];
-  const isPilotOnline = pilotRoom?.online ?? false;
 
   const hiddenCount = Object.values(objectFilters).filter((v) => !v).length;
 
@@ -179,4 +195,4 @@ export const PanelTopControls: React.FC = () => {
       </div>
     </div>
   );
-};
+});

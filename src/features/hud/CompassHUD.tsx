@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { useViewStore } from "../../stores/viewStore";
 
 /**
@@ -9,8 +10,13 @@ import { useViewStore } from "../../stores/viewStore";
  * - S (Selatan): Sisi gedung menghadap ke atas / berseberangan (-Z)
  * - B (Barat): Sisi samping kanan gedung (+X)
  */
-export const CompassHUD: React.FC = () => {
-  const { cameraAzimuth, triggerResetCamera } = useViewStore();
+export const CompassHUD: React.FC = React.memo(function CompassHUD() {
+  const { cameraAzimuth, triggerResetCamera } = useViewStore(
+    useShallow((s) => ({
+      cameraAzimuth: s.cameraAzimuth,
+      triggerResetCamera: s.triggerResetCamera,
+    }))
+  );
 
   // Rotasi dial kompas 3D (dalam derajat)
   const rotDeg = (cameraAzimuth * 180) / Math.PI;
@@ -162,4 +168,4 @@ export const CompassHUD: React.FC = () => {
       </div>
     </div>
   );
-};
+});

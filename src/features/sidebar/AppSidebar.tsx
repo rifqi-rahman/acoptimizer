@@ -10,12 +10,20 @@ import {
   Settings,
   Wind,
 } from "lucide-react";
+import { useShallow } from "zustand/react/shallow";
 import { useRoomStore } from "../../stores/roomStore";
 import { useViewStore } from "../../stores/viewStore";
 
-export const AppSidebar: React.FC = () => {
-  const { openModal, setLayer, layer, resetToBuilding } = useViewStore();
-  const { connection } = useRoomStore();
+export const AppSidebar: React.FC = React.memo(function AppSidebar() {
+  const { openModal, setLayer, layer, resetToBuilding } = useViewStore(
+    useShallow((s) => ({
+      openModal: s.openModal,
+      setLayer: s.setLayer,
+      layer: s.layer,
+      resetToBuilding: s.resetToBuilding,
+    }))
+  );
+  const connection = useRoomStore((s) => s.connection);
 
   const [isHovered, setIsHovered] = useState(false);
   const sidebarRef = useRef<HTMLElement>(null);
@@ -205,7 +213,7 @@ export const AppSidebar: React.FC = () => {
       </aside>
     </div>
   );
-};
+});
 
 // Sub-komponen NavItem dengan Posisi Icon Tetap Beku di Tempat
 function NavItem({

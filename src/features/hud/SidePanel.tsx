@@ -22,8 +22,8 @@ import {
   X,
   Zap,
 } from "lucide-react";
+import { useShallow } from "zustand/react/shallow";
 import { FloorModel, RoomGeometry } from "../../building/params";
-import { deriveRoomStatus } from "../../domain/roomStatus";
 import { useRoomStore } from "../../stores/roomStore";
 import { useViewStore } from "../../stores/viewStore";
 
@@ -43,11 +43,27 @@ interface SidePanelProps {
   floors: FloorModel[];
 }
 
-export const SidePanel: React.FC<SidePanelProps> = ({ room, currentFloor, floors }) => {
-  const { mode, selectRoom, selectFloor, resetToBuilding } = useViewStore();
-  const { rooms: liveRooms, sendCommand, lastCommandFeedback, connection } = useRoomStore();
-
-  const now = new Date();
+export const SidePanel: React.FC<SidePanelProps> = React.memo(function SidePanel({
+  room,
+  currentFloor,
+  floors,
+}) {
+  const { mode, selectRoom, selectFloor, resetToBuilding } = useViewStore(
+    useShallow((s) => ({
+      mode: s.mode,
+      selectRoom: s.selectRoom,
+      selectFloor: s.selectFloor,
+      resetToBuilding: s.resetToBuilding,
+    }))
+  );
+  const { rooms: liveRooms, sendCommand, lastCommandFeedback, connection } = useRoomStore(
+    useShallow((s) => ({
+      rooms: s.rooms,
+      sendCommand: s.sendCommand,
+      lastCommandFeedback: s.lastCommandFeedback,
+      connection: s.connection,
+    }))
+  );
 
   // Ruangan pilot R.601 live data
   const pilotLive = liveRooms["6-U1"];
@@ -58,11 +74,6 @@ export const SidePanel: React.FC<SidePanelProps> = ({ room, currentFloor, floors
   if (room) {
     const live = liveRooms[room.slotId];
     const hasDevice = room.hasDevice || (live?.hasDevice ?? false);
-    const status = !hasDevice
-      ? "NO_DEVICE"
-      : live?.online
-      ? deriveRoomStatus(live, now)
-      : "OFFLINE";
 
     const currentTargetTemp =
       live?.targetTemp ?? (live?.acMode === "eco" ? 27 : 22);
@@ -685,4 +696,4 @@ export const SidePanel: React.FC<SidePanelProps> = ({ room, currentFloor, floors
       </div>
     </div>
   );
-};
+});

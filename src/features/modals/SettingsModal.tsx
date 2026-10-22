@@ -1,11 +1,20 @@
 import React, { useState } from "react";
-import { Check, Radio, Server, Settings, Sliders, X, Zap } from "lucide-react";
+import { Check, Server, Settings, Sliders, X, Zap } from "lucide-react";
+import { useShallow } from "zustand/react/shallow";
 import { useRoomStore } from "../../stores/roomStore";
 import { useViewStore } from "../../stores/viewStore";
 
-export const SettingsModal: React.FC = () => {
-  const { activeModal, openModal } = useViewStore();
-  const { connection, brokerUrl, setBrokerUrl } = useRoomStore();
+export const SettingsModal: React.FC = React.memo(function SettingsModal() {
+  const { activeModal, openModal } = useViewStore(
+    useShallow((s) => ({ activeModal: s.activeModal, openModal: s.openModal }))
+  );
+  const { connection, brokerUrl, setBrokerUrl } = useRoomStore(
+    useShallow((s) => ({
+      connection: s.connection,
+      brokerUrl: s.brokerUrl,
+      setBrokerUrl: s.setBrokerUrl,
+    }))
+  );
 
   const [normalTemp, setNormalTemp] = useState(22);
   const [ecoTemp, setEcoTemp] = useState(27);
@@ -231,4 +240,4 @@ export const SettingsModal: React.FC = () => {
       </div>
     </div>
   );
-};
+});

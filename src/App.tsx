@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { generateEntireBuilding } from "./building/generator";
 import { useMqttLive } from "./data/useMqttLive";
 import { CompassHUD } from "./features/hud/CompassHUD";
@@ -14,8 +15,13 @@ import { useRoomStore } from "./stores/roomStore";
 import { useViewStore } from "./stores/viewStore";
 
 export function App() {
-  const { selectedFloor, selectedSlotId } = useViewStore();
-  const { initializeRooms } = useRoomStore();
+  const { selectedFloor, selectedSlotId } = useViewStore(
+    useShallow((s) => ({
+      selectedFloor: s.selectedFloor,
+      selectedSlotId: s.selectedSlotId,
+    }))
+  );
+  const initializeRooms = useRoomStore((s) => s.initializeRooms);
 
   // Buat model spasial 7 lantai Gedung FST (Atrium)
   const floors = useMemo(() => generateEntireBuilding(), []);

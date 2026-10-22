@@ -1,10 +1,19 @@
 import React from "react";
 import { Home } from "lucide-react";
+import { useShallow } from "zustand/react/shallow";
 import { useViewStore } from "../../stores/viewStore";
 
-export const FloorRail: React.FC = () => {
-  const { selectedFloor, selectFloor, mode, resetToBuilding } = useViewStore();
-  const floors = [7, 6, 5, 4, 3, 2, 1];
+const FLOORS_DESC = [7, 6, 5, 4, 3, 2, 1] as const;
+
+export const FloorRail: React.FC = React.memo(function FloorRail() {
+  const { selectedFloor, selectFloor, mode, resetToBuilding } = useViewStore(
+    useShallow((s) => ({
+      selectedFloor: s.selectedFloor,
+      selectFloor: s.selectFloor,
+      mode: s.mode,
+      resetToBuilding: s.resetToBuilding,
+    }))
+  );
 
   return (
     <div className="absolute right-4 top-1/2 -translate-y-1/2 z-30 pointer-events-auto flex flex-col items-center gap-1.5 w-12 bg-white/95 backdrop-blur-md p-1.5 rounded-full shadow-2xl border border-slate-200/90">
@@ -31,7 +40,7 @@ export const FloorRail: React.FC = () => {
       <div className="w-5 h-[1px] bg-slate-200 my-1" />
 
       {/* Daftar Tombol Lantai (LT.7 s/d LT.1) */}
-      {floors.map((floor) => {
+      {FLOORS_DESC.map((floor) => {
         const isSelected = mode !== "building" && selectedFloor === floor;
         const isPilotFloor = floor === 6;
 
@@ -63,4 +72,4 @@ export const FloorRail: React.FC = () => {
       })}
     </div>
   );
-};
+});

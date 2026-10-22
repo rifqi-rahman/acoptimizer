@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import mqtt from "mqtt";
+import { useShallow } from "zustand/react/shallow";
 import {
   CommandPayload,
   formatTopic,
@@ -14,7 +15,14 @@ import { registerMqttCommandPublisher, useRoomStore } from "../stores/roomStore"
  * langsung dengan mikrokontroler ESP32 (misal di Ruang Pilot R.601 / Slot "6-U1").
  */
 export function useMqttLive(enabled = true) {
-  const { brokerUrl, setConnection, updateTelemetry, setDeviceOnline } = useRoomStore();
+  const { brokerUrl, setConnection, updateTelemetry, setDeviceOnline } = useRoomStore(
+    useShallow((s) => ({
+      brokerUrl: s.brokerUrl,
+      setConnection: s.setConnection,
+      updateTelemetry: s.updateTelemetry,
+      setDeviceOnline: s.setDeviceOnline,
+    }))
+  );
 
   useEffect(() => {
     if (!enabled || !brokerUrl) return;

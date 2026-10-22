@@ -11,7 +11,25 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(import.meta.dirname, './src'),
+    },
+  },
+  build: {
+    chunkSizeWarningLimit: 1300,
+    rolldownOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/three/')) {
+            return 'vendor-three'
+          }
+          if (id.includes('node_modules/@react-three') || id.includes('node_modules/three-stdlib')) {
+            return 'vendor-r3f'
+          }
+          if (id.includes('node_modules/mqtt')) {
+            return 'vendor-mqtt'
+          }
+        },
+      },
     },
   },
 })

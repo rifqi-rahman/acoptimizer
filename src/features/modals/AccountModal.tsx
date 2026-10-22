@@ -1,9 +1,12 @@
 import React from "react";
-import { CheckCircle2, GraduationCap, Key, LogOut, ShieldCheck, User, X } from "lucide-react";
+import { CheckCircle2, GraduationCap, LogOut, User, X } from "lucide-react";
+import { useShallow } from "zustand/react/shallow";
 import { useViewStore } from "../../stores/viewStore";
 
-export const AccountModal: React.FC = () => {
-  const { activeModal, openModal } = useViewStore();
+export const AccountModal: React.FC = React.memo(function AccountModal() {
+  const { activeModal, openModal } = useViewStore(
+    useShallow((s) => ({ activeModal: s.activeModal, openModal: s.openModal }))
+  );
 
   if (activeModal !== "account") return null;
 
@@ -124,4 +127,4 @@ export const AccountModal: React.FC = () => {
       </div>
     </div>
   );
-};
+});

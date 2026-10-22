@@ -3,6 +3,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Environment } from "@react-three/drei";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import * as THREE from "three";
+import { useShallow } from "zustand/react/shallow";
 import { FloorModel } from "../../building/params";
 import { useViewStore } from "../../stores/viewStore";
 import { Building3D } from "./Building3D";
@@ -16,13 +17,22 @@ interface TwinCanvasProps {
 function TwinCameraController({ floors }: { floors: FloorModel[] }) {
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const { mode, selectedFloor, selectedSlotId, setCameraAzimuth, resetCameraTrigger } =
-    useViewStore();
+    useViewStore(
+      useShallow((s) => ({
+        mode: s.mode,
+        selectedFloor: s.selectedFloor,
+        selectedSlotId: s.selectedSlotId,
+        setCameraAzimuth: s.setCameraAzimuth,
+        resetCameraTrigger: s.resetCameraTrigger,
+      }))
+    );
   const { camera } = useThree();
 
   // Target posisi kamera & titik pusat orbit
   const desiredTargetRef = useRef(new THREE.Vector3(0, 0, 0));
   const desiredPosRef = useRef(new THREE.Vector3(75, 58, 88));
   const isTransitioningRef = useRef(false);
+  const lastAzimuthRef = useRef<number>(0);
 
   // Cari koordinat ruangan jika sedang dalam mode room
   const activeRoom = React.useMemo(() => {
@@ -81,31 +91,35 @@ function TwinCameraController({ floors }: { floors: FloorModel[] }) {
     }
   }, [resetCameraTrigger, mode, selectedFloor, camera]);
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     if (!controlsRef.current) return;
 
-    // Lacak sudut azimuth kamera untuk kompas HUD
+    // Lacak sudut azimuth kamera untuk kompas HUD hanya jika berubah signifikan (> 0.008 rad)
+    // untuk mencegah re-render komponen React pada setiap frame (60fps)
     const azimuth = controlsRef.current.getAzimuthalAngle();
-    setCameraAzimuth(azimuth);
+    if (Math.abs(azimuth - lastAzimuthRef.current) > 0.008) {
+      lastAzimuthRef.current = azimuth;
+      setCameraAzimuth(azimuth);
+    }
 
     // Animasi transisi kamera yang mulus dan elastis (Damping)
     if (isTransitioningRef.current) {
       const lerpSpeed = Math.min(delta * 5.0, 0.18);
 
       controlsRef.current.target.lerp(desiredTargetRef.current, lerpSpeed);
-      camera.position.lerp(desiredPosRef.current, lerpSpeed);
+      state.camera.position.lerp(desiredPosRef.current, lerpSpeed);
 
       if (mode === "floor") {
         // Jaga agar sumbu X selalu 0 sempurna saat transisi ke tampak atas lantai
-        camera.position.x = 0;
-        controlsRef.current.target.x = 0;
+        state.camera.position.setX(0);
+        controlsRef.current.target.setX(0);
       }
 
       const distTarget = controlsRef.current.target.distanceTo(desiredTargetRef.current);
-      const distPos = camera.position.distanceTo(desiredPosRef.current);
+      const distPos = state.camera.position.distanceTo(desiredPosRef.current);
 
       if (distTarget < 0.15 && distPos < 0.2) {
-        camera.position.copy(desiredPosRef.current);
+        state.camera.position.copy(desiredPosRef.current);
         controlsRef.current.target.copy(desiredTargetRef.current);
         controlsRef.current.update();
         isTransitioningRef.current = false;
@@ -131,8 +145,10 @@ function TwinCameraController({ floors }: { floors: FloorModel[] }) {
   );
 }
 
-export const TwinCanvas: React.FC<TwinCanvasProps> = ({ floors }) => {
-  const { isGrayscale } = useViewStore();
+export const TwinCanvas: React.FC<TwinCanvasProps> = React.memo(function TwinCanvas({
+  floors,
+}) {
+  const isGrayscale = useViewStore((s) => s.isGrayscale);
 
   return (
     <div
@@ -174,4 +190,4 @@ export const TwinCanvas: React.FC<TwinCanvasProps> = ({ floors }) => {
       </Canvas>
     </div>
   );
-};
+});

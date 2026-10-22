@@ -1,9 +1,12 @@
 import React from "react";
-import { AlertTriangle, CheckCircle2, Clock, Cpu, Moon, Sparkles, Sun, Thermometer, Wind, X, Zap } from "lucide-react";
+import { AlertTriangle, Clock, Cpu, Moon, Sparkles, Sun, Thermometer, Wind, X, Zap } from "lucide-react";
+import { useShallow } from "zustand/react/shallow";
 import { useViewStore } from "../../stores/viewStore";
 
-export const AutomationsModal: React.FC = () => {
-  const { activeModal, openModal } = useViewStore();
+export const AutomationsModal: React.FC = React.memo(function AutomationsModal() {
+  const { activeModal, openModal } = useViewStore(
+    useShallow((s) => ({ activeModal: s.activeModal, openModal: s.openModal }))
+  );
 
   if (activeModal !== "automations") return null;
 
@@ -167,4 +170,4 @@ export const AutomationsModal: React.FC = () => {
       </div>
     </div>
   );
-};
+});

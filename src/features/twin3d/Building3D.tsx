@@ -1,6 +1,7 @@
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
 import { Html } from "@react-three/drei";
 import { Sparkles } from "lucide-react";
+import { useShallow } from "zustand/react/shallow";
 import { FloorModel } from "../../building/params";
 import { useViewStore } from "../../stores/viewStore";
 import { Floor3DCutaway } from "./Floor3DCutaway";
@@ -10,7 +11,9 @@ interface Building3DProps {
   floors: FloorModel[];
 }
 
-export const Building3D: React.FC<Building3DProps> = ({ floors }) => {
+export const Building3D: React.FC<Building3DProps> = React.memo(function Building3D({
+  floors,
+}) {
   const {
     mode,
     selectedFloor,
@@ -19,11 +22,28 @@ export const Building3D: React.FC<Building3DProps> = ({ floors }) => {
     hoveredFloor,
     setHoveredFloor,
     objectFilters,
-  } = useViewStore();
+  } = useViewStore(
+    useShallow((s) => ({
+      mode: s.mode,
+      selectedFloor: s.selectedFloor,
+      selectFloor: s.selectFloor,
+      selectRoom: s.selectRoom,
+      hoveredFloor: s.hoveredFloor,
+      setHoveredFloor: s.setHoveredFloor,
+      objectFilters: s.objectFilters,
+    }))
+  );
 
   const currentFloor = useMemo(
     () => floors.find((f) => f.level === selectedFloor) ?? floors[5],
     [floors, selectedFloor]
+  );
+
+  const handleRoomSelectSingleFloor = useCallback(
+    (slotId: string) => {
+      selectRoom(slotId);
+    },
+    [selectRoom]
   );
 
   return (
@@ -62,8 +82,8 @@ export const Building3D: React.FC<Building3DProps> = ({ floors }) => {
             <FstBuildingExterior
               floors={floors}
               hoveredFloor={hoveredFloor}
-              onFloorDoubleClick={(lvl) => selectFloor(lvl)}
-              onFloorHover={(lvl) => setHoveredFloor(lvl)}
+              onFloorDoubleClick={selectFloor}
+              onFloorHover={setHoveredFloor}
             />
           )}
 
@@ -81,18 +101,18 @@ export const Building3D: React.FC<Building3DProps> = ({ floors }) => {
           <Floor3DCutaway
             floor={currentFloor}
             isBuildingStack={false}
-            onRoomSelect={(slotId) => selectRoom(slotId)}
+            onRoomSelect={handleRoomSelectSingleFloor}
           />
         </group>
       )}
     </group>
   );
-};
+});
 
 // =========================================================================
 // Lingkungan Kampus Sekitar: Jalan Aspal, Parkiran Mobil, Trotoar & Pepohonan
 // =========================================================================
-function GroundCampusEnvironment({
+const GroundCampusEnvironment = React.memo(function GroundCampusEnvironment({
   showCars,
   showTrees,
 }: {
@@ -190,12 +210,12 @@ function GroundCampusEnvironment({
         ))}
     </group>
   );
-}
+});
 
 // =========================================================================
 // Taman & Pohon Cemara di Tengah Void Atrium
 // =========================================================================
-function AtriumCourtyardGarden({
+const AtriumCourtyardGarden = React.memo(function AtriumCourtyardGarden({
   showTrees,
   showFurniture,
 }: {
@@ -269,12 +289,18 @@ function AtriumCourtyardGarden({
         ))}
     </group>
   );
-}
+});
 
 // =========================================================================
 // Tooltip Mengambang saat Cursor Menyorot (Hover) Lantai di Mode Gedung
 // =========================================================================
-function FloatingFloorHoverTag({ level, yBase }: { level: number; yBase: number }) {
+const FloatingFloorHoverTag = React.memo(function FloatingFloorHoverTag({
+  level,
+  yBase,
+}: {
+  level: number;
+  yBase: number;
+}) {
   const isPilotFloor = level === 6;
 
   return (
@@ -292,4 +318,4 @@ function FloatingFloorHoverTag({ level, yBase }: { level: number; yBase: number 
       </div>
     </Html>
   );
-}
+});
