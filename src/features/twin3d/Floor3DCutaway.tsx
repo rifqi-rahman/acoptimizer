@@ -725,11 +725,13 @@ function SaintekHubLounge({ level }: { level: number }) {
 // Sesuai Foto Asli (teater-room-in-corner-every-floor.png):
 // Tempat duduk oranye-emas berundak menurun ke arah panggung & dinding biru
 // =========================================================================
-function TheaterAmphitheaterSeating({ level: _level }: { level: number }) {
+function TheaterAmphitheaterSeating({ level }: { level: number }) {
+  if (level === 1) return null; // Lantai 1 adalah Mushola & Dapur Kantin
+
   return (
     <group>
-      {/* Teater 1 (Pojok Timur Laut - NE) */}
-      <group position={[28.0, 0, 24.0]}>
+      {/* Teater 1 (Pojok Kiri Depan / Barat Laut) */}
+      <group position={[-28.0, 0, 24.0]}>
         {/* Dinding Biru Akustik (Foto Asli) */}
         <mesh position={[0, 1.2, 4.4]}>
           <boxGeometry args={[8.8, 2.2, 0.15]} />

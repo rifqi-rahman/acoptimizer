@@ -76,32 +76,30 @@ export function generateFloorModel(
   };
 
   // Sudut-sudut Gedung (Menara Sudut Mencuat Lebih Besar):
-  // Sisi Kiri (Barat): Toilet + Tangga Darurat di setiap sudut
-  // Pojok Barat Laut (NW): Toilet 1 & Tangga Darurat 1
-  addRoom(`${level}-WC1`, `Toilet NW`, "toilet", -halfW, -halfW + rDepth, halfD - rDepth, halfD - 3.5, false);
-  addRoom(`${level}-TD1`, `Tangga Darurat NW`, "stairs", -halfW, -halfW + rDepth, halfD - 3.5, halfD, false);
-
-  // Pojok Barat Daya (SW): Toilet 2 & Tangga Darurat 2
-  addRoom(`${level}-WC2`, `Toilet SW`, "toilet", -halfW, -halfW + rDepth, -halfD, -halfD + 4.5, false);
-  addRoom(`${level}-TD2`, `Tangga Darurat SW`, "stairs", -halfW, -halfW + rDepth, -halfD + 4.5, -halfD + rDepth, false);
-
-  // Sisi Kanan (Timur): Ruang Teater / Seminar di setiap sudut
-  // Pojok Timur Laut (NE): Ruang Teater 1 (Amphitheater)
+  // Sisi Kiri Depan (Sebelumnya Toilet, Sekarang Ruang Teater 1 / Mushola Lt 1)
   addRoom(
     `${level}-TR1`,
-    level === 1 ? "Mushola Lt 1" : level === 2 ? "Ruang Teater 1 (Seminar)" : `Ruang Teater NE ${level}`,
+    level === 1 ? "Mushola" : level === 2 ? "Ruang Teater 1 (Seminar)" : "Ruang Teater 1",
     level === 1 ? "mushola" : "theater",
-    halfW - rDepth,
-    halfW,
+    -halfW,
+    -halfW + rDepth,
     halfD - rDepth,
     halfD,
     true
   );
 
+  // Sisi Kanan Depan (Sebelumnya Ruang Teater, Sekarang Toilet & Tangga Darurat)
+  addRoom(`${level}-WC1`, `Toilet`, "toilet", halfW - rDepth, halfW, halfD - rDepth, halfD - 3.5, false);
+  addRoom(`${level}-TD1`, `Tangga Darurat`, "stairs", halfW - rDepth, halfW, halfD - 3.5, halfD, false);
+
+  // Pojok Barat Daya (SW): Toilet & Tangga Darurat
+  addRoom(`${level}-WC2`, `Toilet`, "toilet", -halfW, -halfW + rDepth, -halfD, -halfD + 4.5, false);
+  addRoom(`${level}-TD2`, `Tangga Darurat`, "stairs", -halfW, -halfW + rDepth, -halfD + 4.5, -halfD + rDepth, false);
+
   // Pojok Tenggara (SE): Ruang Teater 2 / Dapur Kantin di Lt 1
   addRoom(
     `${level}-TR2`,
-    level === 1 ? "Dapur & Layanan Kantin" : level === 2 ? "Ruang Teater 2 (Auditorium)" : `Ruang Teater SE ${level}`,
+    level === 1 ? "Dapur & Layanan Kantin" : level === 2 ? "Ruang Teater 2 (Auditorium)" : "Ruang Teater 2",
     level === 1 ? "service" : "theater",
     halfW - rDepth,
     halfW,
