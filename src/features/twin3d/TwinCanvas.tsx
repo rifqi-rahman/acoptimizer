@@ -111,10 +111,14 @@ function TwinCameraController({ floors }: { floors: FloorModel[] }) {
 }
 
 export const TwinCanvas: React.FC<TwinCanvasProps> = ({ floors }) => {
-  const { mode } = useViewStore();
+  const { mode, isGrayscale } = useViewStore();
 
   return (
-    <div className="w-full h-full relative z-0 isolate overflow-hidden cursor-grab active:cursor-grabbing bg-[#E5EDF4]">
+    <div
+      className={`w-full h-full relative z-0 isolate overflow-hidden cursor-grab active:cursor-grabbing bg-[#E5EDF4] transition-all duration-300 ${
+        isGrayscale ? "grayscale contrast-105" : ""
+      }`}
+    >
       <Canvas
         shadows
         camera={{ position: [75, 58, 88], fov: 38 }}

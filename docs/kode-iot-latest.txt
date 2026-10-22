@@ -1,0 +1,423 @@
+// ============================================================================
+// KODE FIRMWARE IOT ACOPTIMIZER - GEDUNG FST UIN JAKARTA (OPTIMIZED & COOL)
+// Target Ruangan : Ruang 601 (Slot ID: "6-U1", Lantai 6)
+// Komunikasi     : MQTT Real-Time 2 Arah (ESP32 TCP 1883 <-> Web App WSS 8084)
+// Optimasi Suhu  : CPU 80MHz + WiFi Modem Sleep + Non-Blocking Loop + DHT 5s
+// Library Arduino: WiFi (Built-in), DHT sensor library, NTPClient, PubSubClient
+// ============================================================================
+
+#include <WiFi.h>
+#include <DHT.h>
+#include <NTPClient.h>
+#include <WiFiUdp.h>
+#include <PubSubClient.h>
+// #include <IRremoteESP8266.h> // Aktifkan saat akan menembak sinyal IR raw/NEC asli
+
+// --- 1. IDENTITAS RUANGAN & PERANGKAT (Sesuai Kontrak Web App Digital Twin) ---
+#define ROOM_SLOT_ID   "6-U1"          // Kode Slot Spasial di Web App untuk R.601
+#define ROOM_NAME      "R.601"         // Nama Tampilan Ruangan
+#define DEVICE_ID      "esp32-r601"    // ID Unik Perangkat ESP32
+#define FIRMWARE_VER   "2.0.0-cool"
+
+// Topik MQTT Otomatis berdasarkan ROOM_SLOT_ID
+#define TOPIC_TELEMETRY "acoptimizer/fst-uin/v1/" ROOM_SLOT_ID "/telemetry"
+#define TOPIC_STATUS    "acoptimizer/fst-uin/v1/" ROOM_SLOT_ID "/status"
+#define TOPIC_CMD       "acoptimizer/fst-uin/v1/" ROOM_SLOT_ID "/cmd"
+#define TOPIC_ACK       "acoptimizer/fst-uin/v1/" ROOM_SLOT_ID "/ack"
+
+// --- 2. DEKLARASI PIN HARDWARE ---
+#define DHTPIN 15          // Pin Data DHT22
+#define DHTTYPE DHT22
+#define MMWAVE_PIN 13      // Pin OUT Sensor mmWave HLK-LD2410
+#define IR_PIN 4           // Pin S (Signal) KY-005 IR Transmitter
+#define LED_GREEN 16       // Indikator Kehadiran (HIGH = Ada Orang)
+#define LED_RED 17         // Indikator Transmisi IR (Berkedip saat kirim IR)
+
+// --- 3. KREDENSIAL WIFI & BROKER MQTT ---
+const char* ssid       = "Teman Kenangan";
+const char* password   = "KenanganManis#21";
+const char* mqttServer = "broker.emqx.io";
+const int   mqttPort   = 1883; // TCP non-TLS agar CPU ESP32 tetap dingin
+
+// --- 4. INISIALISASI OBJEK KOMPONEN ---
+DHT dht(DHTPIN, DHTTYPE);
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "pool.ntp.org", 25200, 60000); // UTC+7 (WIB), sinkron tiap 60 detik
+WiFiClient espClient;
+PubSubClient mqttClient(espClient);
+
+// --- 5. VARIABEL STATE & TIMER NON-BLOCKING ---
+unsigned long lastPresenceTime    = 0;
+unsigned long lastDhtReadTime     = 0;
+unsigned long lastTelemetryTime   = 0;
+unsigned long lastMqttRetryTime   = 0;
+unsigned long overrideUntilMillis = 0;
+
+const unsigned long DHT_INTERVAL_MS       = 5000; // Baca DHT22 tiap 5 detik (mencegah sensor & ESP32 panas)
+const unsigned long TELEMETRY_INTERVAL_MS = 4000; // Kirim data ke Web App tiap 4 detik (atau instan saat state berubah)
+
+float currentTemp     = 25.0;
+float currentHum      = 60.0;
+bool  currentPresence = false;
+int   minutesEmpty    = 0;
+int   activeRule      = 1;
+
+// Mode Kerja: "auto" (mengikuti sensor & Tabel Kerangka) atau "override" (dikontrol dari Web App)
+String deviceMode        = "auto";
+String acMode            = "normal"; // "normal", "eco", "off"
+int    targetTemp        = 22;
+String irAction          = "Tidak ada aksi";
+String previousIRAction  = "";
+String dashboardStatus   = "Inisialisasi Sistem...";
+bool   forceImmediatePub = true;
+
+// ============================================================================
+// FUNGSI EKSEKUSI TRANSMISI IR (Anti-Spam & Indikator LED Merah)
+// ============================================================================
+void triggerIRSignal(const String& actionName, bool forceSend = false) {
+  if (!forceSend && (actionName == previousIRAction || actionName == "Tidak ada aksi" || actionName == "Tidak ada aksi IR")) {
+    if (actionName == "Tidak ada aksi" || actionName == "Tidak ada aksi IR") {
+      previousIRAction = actionName;
+    }
+    return;
+  }
+
+  digitalWrite(LED_RED, HIGH); // Nyalakan LED Merah tanda IR menembak
+  Serial.println("\n[!] MENGIRIM SINYAL IR (" + String(ROOM_NAME) + "): " + actionName + " [!]");
+
+  // Di sini tempat menaruh irsend.sendNEC(...) atau raw code sesuai merk AC kelas
+  delay(250); // Kedipan indikator transmisi IR
+  digitalWrite(LED_RED, LOW);
+
+  previousIRAction = actionName;
+}
+
+// ============================================================================
+// FUNGSI KIRIM TELEMETRI JSON KE WEB APP VIA MQTT
+// ============================================================================
+void publishTelemetry() {
+  if (!mqttClient.connected()) return;
+
+  char payload[420];
+  snprintf(
+    payload,
+    sizeof(payload),
+    "{\"device_id\":\"%s\",\"room_slot\":\"%s\",\"room_name\":\"%s\","
+    "\"temp\":%.1f,\"hum\":%.0f,\"presence\":%s,\"minutes_empty\":%d,"
+    "\"ac_mode\":\"%s\",\"target_temp\":%d,\"ir_action\":\"%s\","
+    "\"dashboard_status\":\"%s\",\"mode\":\"%s\",\"rule\":%d,"
+    "\"rssi\":%d,\"fw\":\"%s\"}",
+    DEVICE_ID,
+    ROOM_SLOT_ID,
+    ROOM_NAME,
+    currentTemp,
+    currentHum,
+    currentPresence ? "true" : "false",
+    minutesEmpty,
+    acMode.c_str(),
+    targetTemp,
+    irAction.c_str(),
+    dashboardStatus.c_str(),
+    deviceMode.c_str(),
+    activeRule,
+    WiFi.RSSI(),
+    FIRMWARE_VER
+  );
+
+  mqttClient.publish(TOPIC_TELEMETRY, payload, false);
+}
+
+// ============================================================================
+// CALLBACK PENERIMA PERINTAH KONTROL DARI WEB APP (REMOTE OVERRIDE)
+// ============================================================================
+void onMqttMessage(char* topic, byte* payload, unsigned int length) {
+  String msg = "";
+  for (unsigned int i = 0; i < length; i++) {
+    msg += (char)payload[i];
+  }
+
+  Serial.println("\n[WEB COMMAND MASUK] Topik: " + String(topic) + " | Payload: " + msg);
+
+  // Parsing ringan tanpa membebani RAM ESP32
+  if (msg.indexOf("\"ac_normal\"") >= 0) {
+    deviceMode = "override";
+    overrideUntilMillis = millis() + (60UL * 60000UL); // Override berlaku 60 menit
+    acMode = "normal";
+    targetTemp = 22;
+    irAction = "Set AC 22C";
+    dashboardStatus = "Override Web - AC Normal (22C)";
+    triggerIRSignal(irAction, true);
+  }
+  else if (msg.indexOf("\"ac_eco\"") >= 0) {
+    deviceMode = "override";
+    overrideUntilMillis = millis() + (60UL * 60000UL);
+    acMode = "eco";
+    targetTemp = 27;
+    irAction = "Set AC 27C";
+    dashboardStatus = "Override Web - AC Eco Mode (27C)";
+    triggerIRSignal(irAction, true);
+  }
+  else if (msg.indexOf("\"ac_off\"") >= 0) {
+    deviceMode = "override";
+    overrideUntilMillis = millis() + (60UL * 60000UL);
+    acMode = "off";
+    irAction = "Power OFF";
+    dashboardStatus = "Override Web - AC Mati";
+    triggerIRSignal(irAction, true);
+  }
+  else if (msg.indexOf("\"set_temp\"") >= 0) {
+    // Ekstrak angka target_temp dari JSON: "target_temp":24
+    int idx = msg.indexOf("\"target_temp\":");
+    if (idx >= 0) {
+      int val = msg.substring(idx + 14).toInt();
+      if (val >= 16 && val <= 30) {
+        deviceMode = "override";
+        overrideUntilMillis = millis() + (60UL * 60000UL);
+        targetTemp = val;
+        acMode = (val >= 26) ? "eco" : "normal";
+        irAction = "Set AC " + String(val) + "C";
+        dashboardStatus = "Override Web - Set AC " + String(val) + "C";
+        triggerIRSignal(irAction, true);
+      }
+    }
+  }
+  else if (msg.indexOf("\"release\"") >= 0) {
+    deviceMode = "auto";
+    overrideUntilMillis = 0;
+    previousIRAction = ""; // Paksa evaluasi ulang otomatis
+    dashboardStatus = "Kembali ke Mode Otomatis (Sensor ESP32)";
+  }
+
+  // Segera kirim pembaruan status ke Web App agar UI langsung sinkron
+  publishTelemetry();
+}
+
+// ============================================================================
+// KONEKSI NON-BLOCKING KE BROKER MQTT
+// ============================================================================
+void ensureMqttConnected() {
+  if (WiFi.status() != WL_CONNECTED) return;
+  if (mqttClient.connected()) return;
+
+  unsigned long now = millis();
+  if (now - lastMqttRetryTime < 4000) return;
+  lastMqttRetryTime = now;
+
+  Serial.print("[MQTT] Menghubungkan ke broker ");
+  Serial.print(mqttServer);
+  Serial.print(" untuk ruang ");
+  Serial.println(ROOM_NAME);
+
+  String clientId = String(DEVICE_ID) + "-" + String(random(1000, 9999));
+  // Gunakan Last Will and Testament (LWT) agar Web App tahu jika ESP32 mati/cabut daya
+  if (mqttClient.connect(clientId.c_str(), NULL, NULL, TOPIC_STATUS, 0, true, "offline")) {
+    Serial.println("[MQTT] Terhubung! Subscribe ke: " + String(TOPIC_CMD));
+    mqttClient.publish(TOPIC_STATUS, "online", true);
+    mqttClient.subscribe(TOPIC_CMD);
+    publishTelemetry();
+  } else {
+    Serial.print("[MQTT ERROR] Gagal rc=");
+    Serial.println(mqttClient.state());
+  }
+}
+
+// ============================================================================
+// SETUP AWAL MIKROKONTROLER
+// ============================================================================
+void setup() {
+  // OPTIMASI TERMAL #1: Turunkan frekuensi CPU dari 240MHz ke 80MHz
+  // Memangkas konsumsi daya dan panas berlebih pada ESP32 hingga ~60%
+  setCpuFrequencyMhz(80);
+
+  Serial.begin(115200);
+
+  pinMode(MMWAVE_PIN, INPUT);
+  pinMode(LED_GREEN, OUTPUT);
+  pinMode(LED_RED, OUTPUT);
+  pinMode(IR_PIN, OUTPUT);
+
+  dht.begin();
+
+  Serial.println("\n=================================================");
+  Serial.println("ACOPTIMIZER IOT NODE - " + String(ROOM_NAME) + " (Slot " + String(ROOM_SLOT_ID) + ")");
+  Serial.println("=================================================");
+
+  // Koneksi WiFi
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  Serial.print("Menghubungkan ke WiFi");
+  int wifiAttempts = 0;
+  while (WiFi.status() != WL_CONNECTED && wifiAttempts < 25) {
+    delay(400);
+    Serial.print(".");
+    wifiAttempts++;
+  }
+
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("\n[DEBUGGER ERROR] Gagal terhubung ke WiFi! Cek SSID/Password.");
+  } else {
+    Serial.println("\n[DEBUGGER INFO] WiFi Terhubung! IP: " + WiFi.localIP().toString());
+    // OPTIMASI TERMAL #2: Aktifkan WiFi Modem Power Saving agar antena tidak panas
+    WiFi.setSleep(true);
+    timeClient.begin();
+  }
+
+  mqttClient.setServer(mqttServer, mqttPort);
+  mqttClient.setCallback(onMqttMessage);
+  mqttClient.setBufferSize(512);
+
+  lastPresenceTime = millis();
+}
+
+// ============================================================================
+// LOOP UTAMA (NON-BLOCKING, RESPONSIF & DINGIN)
+// ============================================================================
+void loop() {
+  unsigned long now = millis();
+
+  // 1. Jaga koneksi MQTT & dengarkan tombol kontrol dari Web App secara instan
+  if (WiFi.status() == WL_CONNECTED) {
+    ensureMqttConnected();
+    mqttClient.loop();
+    timeClient.update();
+  }
+
+  // 2. Baca Sensor Kehadiran mmWave secara Real-Time (0% CPU Overhead)
+  bool presenceNow = (digitalRead(MMWAVE_PIN) == HIGH);
+  if (presenceNow) {
+    lastPresenceTime = now;
+    digitalWrite(LED_GREEN, HIGH);
+  } else {
+    digitalWrite(LED_GREEN, LOW);
+  }
+
+  // Jika status kehadiran baru saja berubah (orang masuk / keluar), kirim update instan ke Web!
+  if (presenceNow != currentPresence) {
+    currentPresence = presenceNow;
+    forceImmediatePub = true;
+  }
+
+  // 3. Baca Sensor Suhu & Kelembapan DHT22 setiap 5 detik (Mencegah Self-Heating)
+  if (now - lastDhtReadTime >= DHT_INTERVAL_MS || lastDhtReadTime == 0) {
+    lastDhtReadTime = now;
+    float t = dht.readTemperature();
+    float h = dht.readHumidity();
+
+    if (isnan(t)) {
+      Serial.println("[DEBUGGER ERROR] Sensor Suhu DHT22 tidak terbaca! Cek pin 15, 3V3, GND.");
+    } else {
+      if (abs(t - currentTemp) >= 0.3) forceImmediatePub = true;
+      currentTemp = t;
+    }
+
+    if (!isnan(h)) {
+      currentHum = h;
+    }
+  }
+
+  // 4. Hitung Durasi Kekosongan Ruangan (Menit)
+  unsigned long emptyDurationMillis = currentPresence ? 0 : (now - lastPresenceTime);
+  minutesEmpty = emptyDurationMillis / 60000;
+
+  // Cek apakah durasi Manual Override dari Web App sudah habis
+  if (deviceMode == "override" && overrideUntilMillis > 0 && now > overrideUntilMillis) {
+    deviceMode = "auto";
+    overrideUntilMillis = 0;
+  }
+
+  // 5. Evaluasi Logika Inti AC Optimizer (Hanya dijalankan saat mode == "auto")
+  int currentHour = timeClient.getHours();
+  if (currentHour == 0 && timeClient.getEpochTime() < 100000) {
+    currentHour = 10; // Fallback jam kerja jika NTP belum sinkron
+  }
+
+  if (deviceMode == "auto") {
+    if (currentPresence) {
+      if (currentTemp > 29.0) {
+        // KASUS 7/8: Ada Orang | Suhu > 29C -> Peringatan AC Mati/Rusak
+        activeRule = 8;
+        irAction = "Tidak ada aksi IR";
+        dashboardStatus = "Peringatan: Ada Penghuni & AC Panas/Rusak";
+      } else if (currentHour < 18) {
+        // KASUS 1: Jam Kerja (< 18.00) | Ada Orang -> Kelas Terpakai Normal
+        activeRule = 1;
+        acMode = "normal";
+        targetTemp = 22;
+        irAction = "Set AC 22C";
+        dashboardStatus = "Terpakai - AC Normal";
+      } else {
+        // KASUS 5/6: Luar Jam (>= 18.00) | Ada Orang -> Kelas Lembur
+        activeRule = 6;
+        acMode = "normal";
+        targetTemp = 22;
+        irAction = "Set AC 22C";
+        dashboardStatus = "Terpakai (Lembur) - AC Normal";
+      }
+    } else {
+      // KONDISI RUANGAN KOSONG
+      if (minutesEmpty < 15) {
+        // KASUS 2: Kosong < 15 Menit -> Jeda / Transisi
+        activeRule = 2;
+        irAction = "Tidak ada aksi";
+        dashboardStatus = "Transisi - AC Normal";
+      } else if (minutesEmpty >= 15 && minutesEmpty < 120) {
+        if (currentTemp > 29.0) {
+          // KASUS 7: Kosong 15m | Suhu > 29C -> AC sudah mati, cegah spam IR
+          activeRule = 7;
+          acMode = "off";
+          irAction = "Tidak ada aksi";
+          dashboardStatus = "Kosong - AC Mati (Tervalidasi)";
+        } else if (currentHour >= 18) {
+          // KASUS 5: Luar Jam (>= 18.00) | Kosong >= 15m -> Matikan AC
+          activeRule = 5;
+          acMode = "off";
+          irAction = "Power OFF";
+          dashboardStatus = "Kosong Malam - AC Mati";
+        } else {
+          // KASUS 3 (Eco): Jam Kerja | Kosong 15-120m -> Eco Mode 27C
+          activeRule = 3;
+          acMode = "eco";
+          targetTemp = 27;
+          irAction = "Set AC 27C";
+          dashboardStatus = "Kosong - AC Eco Mode";
+        }
+      } else {
+        // KASUS 4 (Mati Total): Kosong >= 120 Menit (2 Jam)
+        activeRule = 4;
+        acMode = "off";
+        if (currentTemp > 29.0) {
+          irAction = "Tidak ada aksi";
+          dashboardStatus = "Kosong - AC Mati (Tervalidasi)";
+        } else {
+          irAction = "Power OFF";
+          dashboardStatus = "Kosong - AC Mati";
+        }
+      }
+    }
+
+    // Eksekusi Transmisi IR jika aksi berubah
+    triggerIRSignal(irAction, false);
+  }
+
+  // 6. Publikasikan Telemetri ke Web App & Cetak Serial Monitor setiap 4 detik (atau saat ada perubahan)
+  if (forceImmediatePub || (now - lastTelemetryTime >= TELEMETRY_INTERVAL_MS)) {
+    lastTelemetryTime = now;
+    forceImmediatePub = false;
+
+    publishTelemetry();
+
+    Serial.println("-------------------------------------------------");
+    Serial.print("Identitas    : "); Serial.print(ROOM_NAME); Serial.println(" (Slot " + String(ROOM_SLOT_ID) + ")");
+    Serial.print("Mode Kendali : "); Serial.println(deviceMode == "override" ? "MANUAL OVERRIDE (WEB)" : "OTOMATIS (SENSOR)");
+    Serial.print("Waktu (Jam)  : "); Serial.println(currentHour);
+    Serial.print("Suhu & Lembap: "); Serial.print(currentTemp, 1); Serial.print(" C | "); Serial.print(currentHum, 0); Serial.println(" %");
+    Serial.print("Status mmWave: "); Serial.println(currentPresence ? "ADA ORANG" : "KOSONG");
+    Serial.print("Durasi Kosong: "); Serial.print(minutesEmpty); Serial.println(" Menit");
+    Serial.print("Aksi Sistem  : "); Serial.println(irAction);
+    Serial.print("Payload UI   : "); Serial.println(dashboardStatus);
+    Serial.println("-------------------------------------------------");
+  }
+
+  // OPTIMASI TERMAL #3: Jeda ringan 50ms memberi kesempatan Idle Task FreeRTOS mengistirahatkan CPU
+  delay(50);
+}

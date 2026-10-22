@@ -37,7 +37,6 @@ const FLOOR_HEIGHT = 4.6;
 
 interface FstBuildingExteriorProps {
   floors: FloorModel[];
-  isCutaway: boolean;
   hoveredFloor: number | null;
   onFloorDoubleClick: (level: number) => void;
   onFloorHover: (level: number | null) => void;
@@ -45,7 +44,6 @@ interface FstBuildingExteriorProps {
 
 export const FstBuildingExterior: React.FC<FstBuildingExteriorProps> = ({
   floors,
-  isCutaway,
   hoveredFloor,
   onFloorDoubleClick,
   onFloorHover,
@@ -64,18 +62,21 @@ export const FstBuildingExterior: React.FC<FstBuildingExteriorProps> = ({
         const isHovered = hoveredFloor === floor.level;
 
         return (
-          <group key={floor.level} position={[0, yBase, 0]}>
-            {/* Pelat Lantai & Balok Sabuk Spandrel Fasad Tembus Rapat */}
-            <InteractiveFloorSlab
-              floor={floor}
-              isHovered={isHovered}
-              onDoubleClick={() => onFloorDoubleClick(floor.level)}
-              onPointerOver={(e) => {
-                e.stopPropagation();
-                onFloorHover(floor.level);
-              }}
-              onPointerOut={() => onFloorHover(null)}
-            />
+          <group
+            key={floor.level}
+            position={[0, yBase, 0]}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              onFloorDoubleClick(floor.level);
+            }}
+            onPointerOver={(e) => {
+              e.stopPropagation();
+              onFloorHover(floor.level);
+            }}
+            onPointerOut={() => onFloorHover(null)}
+          >
+            {/* Balok Sabuk Spandrel Fasad Luar Tembus Rapat (Pelat dalam sudah dirender oleh stack Floor3DCutaway) */}
+            <InteractiveFloorSlab isHovered={isHovered} />
 
             {/* 4 Menara Sudut Menonjol (Grid Coral-Red & Krem) - Tinggi Penuh 4.6m Rapat */}
             <CornerPavilions />
@@ -91,111 +92,49 @@ export const FstBuildingExterior: React.FC<FstBuildingExteriorProps> = ({
 
             {/* Fasad Menara Tengah (Kubah Sarjana di Utara & Pascasarjana di Selatan) */}
             <CenterTowerFacade halfD={halfD} />
-
-            {/* Selasar Koridor Melingkar Void Atrium dengan Tanaman Gantung Hijau */}
-            <AtriumInnerBalconies voidHalfW={voidHalfW} voidHalfD={voidHalfD} />
-
-            {/* Menara Tangga/Lift Silinder Melengkung di Sisi Void Atrium */}
-            <CourtyardCurvedCores />
           </group>
         );
       })}
 
       {/* 2. Atap Genteng Terakota, Panel Surya, 4 Menara Limasan, 2 Kubah Hijau,
           DAN VOID ATRIUM TERBUKA KE LANGIT (Dapat Melihat Taman Lantai 1 dari Atas) */}
-      {!isCutaway && (
-        <group position={[0, topElevation, 0]}>
-          <FstRoofDomesAndSolar
-            halfW={halfW}
-            halfD={halfD}
-            voidHalfW={voidHalfW}
-            voidHalfD={voidHalfD}
-          />
-        </group>
-      )}
+      <group position={[0, topElevation, 0]}>
+        <FstRoofDomesAndSolar
+          halfW={halfW}
+          halfD={halfD}
+          voidHalfW={voidHalfW}
+          voidHalfD={voidHalfD}
+        />
+      </group>
     </group>
   );
 };
 
 // =========================================================================
-// Pelat Lantai Interaktif dengan Balok Sabuk Spandrel Keliling Fasad
+// Balok Sabuk Spandrel Keliling Fasad Luar
 // Menutup rapat pertemuan antar-lantai (zero gap / anti-bocor)
 // =========================================================================
-function InteractiveFloorSlab({
-  floor,
-  isHovered,
-  onDoubleClick,
-  onPointerOver,
-  onPointerOut,
-}: {
-  floor: FloorModel;
-  isHovered: boolean;
-  onDoubleClick: () => void;
-  onPointerOver: (e: any) => void;
-  onPointerOut: () => void;
-}) {
-  const shape = useMemo(() => {
-    const s = new THREE.Shape();
-    const [first, ...rest] = floor.outerPolygon;
-    s.moveTo(first[0], -first[1]);
-    rest.forEach(([x, y]) => s.lineTo(x, -y));
-    s.closePath();
-
-    const hole = new THREE.Path();
-    const [hFirst, ...hRest] = floor.voidPolygon;
-    hole.moveTo(hFirst[0], -hFirst[1]);
-    hRest.forEach(([x, y]) => hole.lineTo(x, -y));
-    hole.closePath();
-    s.holes.push(hole);
-
-    return s;
-  }, [floor]);
+function InteractiveFloorSlab({ isHovered }: { isHovered: boolean }) {
+  const beltColor = isHovered ? "#3B82F6" : FST_COLORS.coralRed;
 
   return (
     <group>
-      {/* Pelat Lantai Beton Putih */}
-      <mesh
-        rotation={[-Math.PI / 2, 0, 0]}
-        position={[0, 0, 0]}
-        receiveShadow
-        castShadow
-        onDoubleClick={(e) => {
-          e.stopPropagation();
-          onDoubleClick();
-        }}
-        onPointerOver={onPointerOver}
-        onPointerOut={onPointerOut}
-      >
-        <extrudeGeometry
-          args={[
-            shape,
-            { depth: 0.5, bevelEnabled: true, bevelThickness: 0.06, bevelSize: 0.06 },
-          ]}
-        />
-        <meshStandardMaterial
-          color={isHovered ? "#93C5FD" : FST_COLORS.creamWall}
-          roughness={0.7}
-          emissive={isHovered ? "#3B82F6" : "#000000"}
-          emissiveIntensity={isHovered ? 0.35 : 0}
-        />
-      </mesh>
-
       {/* Balok Sabuk Spandrel Merah Terakota Keliling Fasad (Tinggi 0.6m, Menutup Pertemuan Lantai) */}
       <mesh position={[0, 0.25, 28.08]}>
         <boxGeometry args={[64.2, 0.58, 0.2]} />
-        <meshStandardMaterial color={FST_COLORS.coralRed} roughness={0.75} />
+        <meshStandardMaterial color={beltColor} roughness={0.75} />
       </mesh>
       <mesh position={[0, 0.25, -28.08]}>
         <boxGeometry args={[64.2, 0.58, 0.2]} />
-        <meshStandardMaterial color={FST_COLORS.coralRed} roughness={0.75} />
+        <meshStandardMaterial color={beltColor} roughness={0.75} />
       </mesh>
       <mesh position={[32.08, 0.25, 0]}>
         <boxGeometry args={[0.2, 0.58, 56.2]} />
-        <meshStandardMaterial color={FST_COLORS.coralRed} roughness={0.75} />
+        <meshStandardMaterial color={beltColor} roughness={0.75} />
       </mesh>
       <mesh position={[-32.08, 0.25, 0]}>
         <boxGeometry args={[0.2, 0.58, 56.2]} />
-        <meshStandardMaterial color={FST_COLORS.coralRed} roughness={0.75} />
+        <meshStandardMaterial color={beltColor} roughness={0.75} />
       </mesh>
     </group>
   );
@@ -996,187 +935,6 @@ function CenterTowerFacade({ halfD }: { halfD: number }) {
           roughness={0.15}
           depthWrite={false}
         />
-      </mesh>
-    </group>
-  );
-}
-
-// =========================================================================
-// Selasar Koridor Melingkar Void Atrium dengan Tanaman Gantung Hijau
-// Berdasarkan Foto 1 (side-view-from-the-void.png) & Foto 2 (tampak-atas.png)
-// =========================================================================
-function AtriumInnerBalconies({ voidHalfW, voidHalfD }: { voidHalfW: number; voidHalfD: number }) {
-  const parapetH = 1.25;
-
-  // Dinding penghalang void krem
-  const parapetGeo = useMemo(() => {
-    const boxes: THREE.BufferGeometry[] = [];
-
-    // Sisi Utara & Selatan
-    const pN = new THREE.BoxGeometry(voidHalfW * 2, parapetH, 0.22);
-    pN.translate(0, parapetH / 2, voidHalfD);
-    boxes.push(pN);
-
-    const pS = new THREE.BoxGeometry(voidHalfW * 2, parapetH, 0.22);
-    pS.translate(0, parapetH / 2, -voidHalfD);
-    boxes.push(pS);
-
-    // Sisi Barat & Timur
-    const pE = new THREE.BoxGeometry(0.22, parapetH, voidHalfD * 2);
-    pE.translate(voidHalfW, parapetH / 2, 0);
-    boxes.push(pE);
-
-    const pW = new THREE.BoxGeometry(0.22, parapetH, voidHalfD * 2);
-    pW.translate(-voidHalfW, parapetH / 2, 0);
-    boxes.push(pW);
-
-    return BufferGeometryUtils.mergeGeometries(boxes, false);
-  }, [parapetH, voidHalfW, voidHalfD]);
-
-  // Lis pembatas merah terakota di atas parapet
-  const capTrimGeo = useMemo(() => {
-    const boxes: THREE.BufferGeometry[] = [];
-
-    const capN = new THREE.BoxGeometry(voidHalfW * 2 + 0.3, 0.1, 0.3);
-    capN.translate(0, parapetH + 0.05, voidHalfD);
-    boxes.push(capN);
-
-    const capS = new THREE.BoxGeometry(voidHalfW * 2 + 0.3, 0.1, 0.3);
-    capS.translate(0, parapetH + 0.05, -voidHalfD);
-    boxes.push(capS);
-
-    const capE = new THREE.BoxGeometry(0.3, 0.1, voidHalfD * 2 + 0.3);
-    capE.translate(voidHalfW, parapetH + 0.05, 0);
-    boxes.push(capE);
-
-    const capW = new THREE.BoxGeometry(0.3, 0.1, voidHalfD * 2 + 0.3);
-    capW.translate(-voidHalfW, parapetH + 0.05, 0);
-    boxes.push(capW);
-
-    return BufferGeometryUtils.mergeGeometries(boxes, false);
-  }, [parapetH, voidHalfW, voidHalfD]);
-
-  // Tanaman Gantung & Planters Hijau Rimbun yang Menjuntai (Signature FST!)
-  const hangingPlantsGeo = useMemo(() => {
-    const boxes: THREE.BufferGeometry[] = [];
-
-    // Pot & daun menjuntai di sisi Utara & Selatan
-    for (let x = -19; x <= 19; x += 3.2) {
-      if (Math.abs(x) < 4.5) continue; // Ruang tangga/lift
-      const plN = new THREE.BoxGeometry(2.6, 0.35, 0.28);
-      plN.translate(x, parapetH - 0.1, voidHalfD - 0.14);
-      boxes.push(plN);
-
-      // Daun menjuntai ke bawah
-      const vineN = new THREE.BoxGeometry(2.4, 0.85, 0.18);
-      vineN.translate(x, parapetH - 0.52, voidHalfD - 0.2);
-      boxes.push(vineN);
-
-      const plS = new THREE.BoxGeometry(2.6, 0.35, 0.28);
-      plS.translate(x, parapetH - 0.1, -voidHalfD + 0.14);
-      boxes.push(plS);
-
-      const vineS = new THREE.BoxGeometry(2.4, 0.85, 0.18);
-      vineS.translate(x, parapetH - 0.52, -voidHalfD + 0.2);
-      boxes.push(vineS);
-    }
-
-    // Pot & daun menjuntai di sisi Timur & Barat
-    for (let z = -14; z <= 14; z += 3.2) {
-      const plE = new THREE.BoxGeometry(0.28, 0.35, 2.6);
-      plE.translate(voidHalfW - 0.14, parapetH - 0.1, z);
-      boxes.push(plE);
-
-      const vineE = new THREE.BoxGeometry(0.18, 0.85, 2.4);
-      vineE.translate(voidHalfW - 0.2, parapetH - 0.52, z);
-      boxes.push(vineE);
-
-      const plW = new THREE.BoxGeometry(0.28, 0.35, 2.6);
-      plW.translate(-voidHalfW + 0.14, parapetH - 0.1, z);
-      boxes.push(plW);
-
-      const vineW = new THREE.BoxGeometry(0.18, 0.85, 2.4);
-      vineW.translate(-voidHalfW + 0.2, parapetH - 0.52, z);
-      boxes.push(vineW);
-    }
-
-    return BufferGeometryUtils.mergeGeometries(boxes, false);
-  }, [parapetH, voidHalfW, voidHalfD]);
-
-  return (
-    <group>
-      {parapetGeo && (
-        <mesh geometry={parapetGeo} castShadow receiveShadow>
-          <meshStandardMaterial color={FST_COLORS.creamWall} roughness={0.8} />
-        </mesh>
-      )}
-      {capTrimGeo && (
-        <mesh geometry={capTrimGeo} castShadow>
-          <meshStandardMaterial color={FST_COLORS.coralRed} roughness={0.7} />
-        </mesh>
-      )}
-      {hangingPlantsGeo && (
-        <mesh geometry={hangingPlantsGeo}>
-          <meshStandardMaterial color={FST_COLORS.foliageGreen} roughness={0.6} />
-        </mesh>
-      )}
-    </group>
-  );
-}
-
-// =========================================================================
-// Menara Tangga/Lift Silinder Melengkung di Sisi Void Atrium
-// Berdasarkan Foto 1 (side-view-from-the-void.png)
-// Tinggi penuh 4.6m rapat dari y=0 ke y=4.6
-// =========================================================================
-function CourtyardCurvedCores() {
-  const height = FLOOR_HEIGHT; // 4.6m
-  const yCenter = height / 2;  // 2.3m
-
-  return (
-    <group>
-      {/* Menara Silinder Core Utara (Lengkungan Menghadap ke Void Atrium Selatan) */}
-      <mesh position={[0, yCenter, 17.5]} castShadow receiveShadow>
-        <cylinderGeometry args={[4.4, 4.4, height, 32, 1, false, Math.PI / 2, Math.PI]} />
-        <meshStandardMaterial color={FST_COLORS.creamWall} roughness={0.75} />
-      </mesh>
-      {/* Roster Balok Kaca Buram Menara Utara */}
-      <mesh position={[0, yCenter, 13.1]}>
-        <boxGeometry args={[3.4, height - 0.8, 0.1]} />
-        <meshStandardMaterial
-          color={FST_COLORS.glassBlock}
-          transparent
-          opacity={0.65}
-          roughness={0.3}
-          depthWrite={false}
-        />
-      </mesh>
-      {/* Lis Garis Merah Horizontal pada Silinder Utara */}
-      <mesh position={[0, height - 0.15, 17.5]}>
-        <cylinderGeometry args={[4.46, 4.46, 0.28, 32, 1, false, Math.PI / 2, Math.PI]} />
-        <meshStandardMaterial color={FST_COLORS.coralRed} roughness={0.7} />
-      </mesh>
-
-      {/* Menara Silinder Core Selatan (Lengkungan Menghadap ke Void Atrium Utara) */}
-      <mesh position={[0, yCenter, -17.5]} castShadow receiveShadow>
-        <cylinderGeometry args={[4.4, 4.4, height, 32, 1, false, -Math.PI / 2, Math.PI]} />
-        <meshStandardMaterial color={FST_COLORS.creamWall} roughness={0.75} />
-      </mesh>
-      {/* Roster Balok Kaca Buram Menara Selatan */}
-      <mesh position={[0, yCenter, -13.1]}>
-        <boxGeometry args={[3.4, height - 0.8, 0.1]} />
-        <meshStandardMaterial
-          color={FST_COLORS.glassBlock}
-          transparent
-          opacity={0.65}
-          roughness={0.3}
-          depthWrite={false}
-        />
-      </mesh>
-      {/* Lis Garis Merah Horizontal pada Silinder Selatan */}
-      <mesh position={[0, height - 0.15, -17.5]}>
-        <cylinderGeometry args={[4.46, 4.46, 0.28, 32, 1, false, -Math.PI / 2, Math.PI]} />
-        <meshStandardMaterial color={FST_COLORS.coralRed} roughness={0.7} />
       </mesh>
     </group>
   );

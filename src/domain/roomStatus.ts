@@ -102,3 +102,42 @@ export function deriveRoomStatus(
 
   return "IDLE";
 }
+
+export function getStatusColor(
+  status: RoomClimateStatus,
+  layer: "status" | "temperature" | "presence" | "energy" = "status",
+  temp: number | null = null
+): string {
+  // Ruangan tanpa alat IoT selalu ditampilkan dalam warna grayscale
+  if (status === "NO_DEVICE") {
+    return "#E2E8F0";
+  }
+
+  if (layer === "temperature" && temp !== null) {
+    if (temp <= 22) return "#3B82F6"; // Biru sejuk
+    if (temp <= 25) return "#10B981"; // Hijau nyaman
+    if (temp <= 28) return "#F59E0B"; // Kuning hangat
+    return "#EF4444"; // Merah panas
+  }
+
+  switch (status) {
+    case "OCCUPIED":
+      return "#22C55E"; // Hijau
+    case "TRANSITION":
+      return "#EAB308"; // Kuning
+    case "ECO":
+      return "#3B82F6"; // Biru
+    case "IDLE":
+      return "#CBD5E1"; // Abu terang
+    case "WASTE":
+      return "#EF4444"; // Merah
+    case "ANOMALY":
+      return "#F97316"; // Oranye
+    case "AFTER_HOURS_OCCUPIED":
+      return "#A855F7"; // Ungu
+    case "OFFLINE":
+      return "#94A3B8"; // Abu gelap
+    default:
+      return "#E2E8F0"; // Grayscale netral
+  }
+}

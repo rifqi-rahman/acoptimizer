@@ -16,9 +16,9 @@ export const Building3D: React.FC<Building3DProps> = ({ floors }) => {
     selectedFloor,
     selectFloor,
     selectRoom,
-    isCutaway,
     hoveredFloor,
     setHoveredFloor,
+    objectFilters,
   } = useViewStore();
 
   const currentFloor = useMemo(
@@ -31,20 +31,41 @@ export const Building3D: React.FC<Building3DProps> = ({ floors }) => {
       {/* TAMPILAN 3D UTAMA */}
       {mode === "building" ? (
         <group>
-          {/* 1. Lingkungan Kampus Sekitar: Jalan Aspal, Area Parkir Berkanopi & Pohon Tropis (Hanya di Mode Gedung) */}
-          <GroundCampusEnvironment />
-
-          {/* 2. Taman & Pohon Cemara di Tengah Void Atrium (Hanya di Mode Gedung) */}
-          <AtriumCourtyardGarden />
-
-          {/* 3. Tinjauan Gedung FST Utuh dengan Fasad Otentik, Kubah Hijau & Panel Surya */}
-          <FstBuildingExterior
-            floors={floors}
-            isCutaway={isCutaway}
-            hoveredFloor={hoveredFloor}
-            onFloorDoubleClick={(lvl) => selectFloor(lvl)}
-            onFloorHover={(lvl) => setHoveredFloor(lvl)}
+          {/* 1. Lingkungan Kampus Sekitar: Jalan Aspal, Area Parkir & Pohon Tropis */}
+          <GroundCampusEnvironment
+            showCars={objectFilters.cars}
+            showTrees={objectFilters.trees}
           />
+
+          {/* 2. Taman & Pohon Cemara di Tengah Void Atrium */}
+          <AtriumCourtyardGarden
+            showTrees={objectFilters.trees}
+            showFurniture={objectFilters.furniture}
+          />
+
+          {/* 3. Stack 7 Lantai Penuh (Setiap Lantai Merender Komponen Floor3DCutaway yang Sama) */}
+          {floors.map((floor) => (
+            <group key={floor.level} position={[0, (floor.level - 1) * 4.6, 0]}>
+              <Floor3DCutaway
+                floor={floor}
+                isBuildingStack={true}
+                onRoomSelect={(slotId) => {
+                  selectFloor(floor.level);
+                  selectRoom(slotId);
+                }}
+              />
+            </group>
+          ))}
+
+          {/* 4. Cangkang Fasad Luar & Atap Kubah/Panel Surya (Dapat Disembunyikan via Filter Objek) */}
+          {objectFilters.roofAndFacade && (
+            <FstBuildingExterior
+              floors={floors}
+              hoveredFloor={hoveredFloor}
+              onFloorDoubleClick={(lvl) => selectFloor(lvl)}
+              onFloorHover={(lvl) => setHoveredFloor(lvl)}
+            />
+          )}
 
           {/* Floating Tooltip saat Hover Lantai di Mode Gedung */}
           {hoveredFloor && (
@@ -55,10 +76,13 @@ export const Building3D: React.FC<Building3DProps> = ({ floors }) => {
           )}
         </group>
       ) : (
-        /* Mode Lantai & Ruang: Tampilan Denah Potongan 3D (Cutaway) Interaktif */
-        /* Objek lantai 1 & ground disembunyikan total, hanya tersisa 1 lantai yang mengambang */
+        /* Mode Lantai & Ruang: Tampilan 1 Lantai Spesifik Interaktif */
         <group position={[0, (selectedFloor - 1) * 4.6, 0]}>
-          <Floor3DCutaway floor={currentFloor} onRoomSelect={(slotId) => selectRoom(slotId)} />
+          <Floor3DCutaway
+            floor={currentFloor}
+            isBuildingStack={false}
+            onRoomSelect={(slotId) => selectRoom(slotId)}
+          />
         </group>
       )}
     </group>
@@ -67,9 +91,14 @@ export const Building3D: React.FC<Building3DProps> = ({ floors }) => {
 
 // =========================================================================
 // Lingkungan Kampus Sekitar: Jalan Aspal, Parkiran Mobil, Trotoar & Pepohonan
-// Sesuai Foto 1 (ground-floor.png) & Foto 2 (tampak-atas.png)
 // =========================================================================
-function GroundCampusEnvironment() {
+function GroundCampusEnvironment({
+  showCars,
+  showTrees,
+}: {
+  showCars: boolean;
+  showTrees: boolean;
+}) {
   return (
     <group position={[0, -0.2, 0]}>
       {/* 1. Bidang Tanah Utama Kampus (Abu-abu Muda Netral Bersih) */}
@@ -85,19 +114,17 @@ function GroundCampusEnvironment() {
       </mesh>
 
       {/* 3. Jalan Aspal Akses & Parkir Depan (Utara & Selatan) */}
-      {/* Jalan Aspal Utara */}
       <mesh position={[0, 0.05, 37.0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[84, 16]} />
         <meshStandardMaterial color={FST_COLORS.asphaltGray} roughness={0.85} />
       </mesh>
 
-      {/* Jalan Aspal Selatan */}
       <mesh position={[0, 0.05, -37.0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[84, 16]} />
         <meshStandardMaterial color={FST_COLORS.asphaltGray} roughness={0.85} />
       </mesh>
 
-      {/* Garis Parkir Kuning di Bawah Colonnade & Sepanjang Jalan (Foto 1) */}
+      {/* Garis Parkir Kuning di Bawah Colonnade & Sepanjang Jalan */}
       {[-16, -11, -6, 6, 11, 16].map((x, i) => (
         <group key={i}>
           <mesh position={[x, 0.08, 33.5]}>
@@ -111,67 +138,69 @@ function GroundCampusEnvironment() {
         </group>
       ))}
 
-      {/* Mobil Parkir Miniatur di Bawah Colonnade & Luar (Foto 1) */}
-      {[
-        { x: -13.5, z: 33.5, color: "#1E293B" }, // Hitam
-        { x: -8.5, z: 33.5, color: "#2563EB" },  // Biru
-        { x: 8.5, z: 33.5, color: "#FFFFFF" },   // Putih
-        { x: 13.5, z: 33.5, color: "#94A3B8" },  // Abu-abu
-        { x: -13.5, z: -33.5, color: "#DC2626" },// Merah
-        { x: 8.5, z: -33.5, color: "#1E293B" },  // Hitam
-      ].map((car, i) => (
-        <group key={i} position={[car.x, 0.1, car.z]}>
-          {/* Badan Mobil */}
-          <mesh position={[0, 0.45, 0]} castShadow>
-            <boxGeometry args={[2.0, 0.65, 4.4]} />
-            <meshStandardMaterial color={car.color} roughness={0.3} metalness={0.4} />
-          </mesh>
-          {/* Kabin Mobil */}
-          <mesh position={[0, 0.95, -0.2]} castShadow>
-            <boxGeometry args={[1.8, 0.55, 2.4]} />
-            <meshStandardMaterial color="#0F172A" roughness={0.2} />
-          </mesh>
-        </group>
-      ))}
-
-      {/* Deretan Pohon Pelindung Kampus di Sepanjang Jalan Luar */}
-      {[-38, -26, -14, 14, 26, 38].map((x, i) => (
-        <group key={i}>
-          {/* Pohon Sisi Utara */}
-          <group position={[x, 0, 47.0]}>
-            <mesh position={[0, 1.4, 0]} castShadow>
-              <cylinderGeometry args={[0.25, 0.35, 2.8, 8]} />
-              <meshStandardMaterial color="#78350F" roughness={0.8} />
+      {/* Mobil Parkir Miniatur (Dapat Disembunyikan via Filter Objek) */}
+      {showCars &&
+        [
+          { x: -13.5, z: 33.5, color: "#1E293B" }, // Hitam
+          { x: -8.5, z: 33.5, color: "#2563EB" }, // Biru
+          { x: 8.5, z: 33.5, color: "#FFFFFF" }, // Putih
+          { x: 13.5, z: 33.5, color: "#94A3B8" }, // Abu-abu
+          { x: -13.5, z: -33.5, color: "#DC2626" }, // Merah
+          { x: 8.5, z: -33.5, color: "#1E293B" }, // Hitam
+        ].map((car, i) => (
+          <group key={i} position={[car.x, 0.1, car.z]}>
+            <mesh position={[0, 0.45, 0]} castShadow>
+              <boxGeometry args={[2.0, 0.65, 4.4]} />
+              <meshStandardMaterial color={car.color} roughness={0.3} metalness={0.4} />
             </mesh>
-            <mesh position={[0, 4.2, 0]} castShadow>
-              <sphereGeometry args={[2.2, 12, 12]} />
-              <meshStandardMaterial color={FST_COLORS.pineTreeGreen} roughness={0.6} />
+            <mesh position={[0, 0.95, -0.2]} castShadow>
+              <boxGeometry args={[1.8, 0.55, 2.4]} />
+              <meshStandardMaterial color="#0F172A" roughness={0.2} />
             </mesh>
           </group>
+        ))}
 
-          {/* Pohon Sisi Selatan */}
-          <group position={[x, 0, -47.0]}>
-            <mesh position={[0, 1.4, 0]} castShadow>
-              <cylinderGeometry args={[0.25, 0.35, 2.8, 8]} />
-              <meshStandardMaterial color="#78350F" roughness={0.8} />
-            </mesh>
-            <mesh position={[0, 4.2, 0]} castShadow>
-              <sphereGeometry args={[2.2, 12, 12]} />
-              <meshStandardMaterial color={FST_COLORS.pineTreeGreen} roughness={0.6} />
-            </mesh>
+      {/* Deretan Pohon Pelindung Kampus di Sepanjang Jalan Luar (Dapat Disembunyikan via Filter Objek) */}
+      {showTrees &&
+        [-38, -26, -14, 14, 26, 38].map((x, i) => (
+          <group key={i}>
+            <group position={[x, 0, 47.0]}>
+              <mesh position={[0, 1.4, 0]} castShadow>
+                <cylinderGeometry args={[0.25, 0.35, 2.8, 8]} />
+                <meshStandardMaterial color="#78350F" roughness={0.8} />
+              </mesh>
+              <mesh position={[0, 4.2, 0]} castShadow>
+                <sphereGeometry args={[2.2, 12, 12]} />
+                <meshStandardMaterial color={FST_COLORS.pineTreeGreen} roughness={0.6} />
+              </mesh>
+            </group>
+
+            <group position={[x, 0, -47.0]}>
+              <mesh position={[0, 1.4, 0]} castShadow>
+                <cylinderGeometry args={[0.25, 0.35, 2.8, 8]} />
+                <meshStandardMaterial color="#78350F" roughness={0.8} />
+              </mesh>
+              <mesh position={[0, 4.2, 0]} castShadow>
+                <sphereGeometry args={[2.2, 12, 12]} />
+                <meshStandardMaterial color={FST_COLORS.pineTreeGreen} roughness={0.6} />
+              </mesh>
+            </group>
           </group>
-        </group>
-      ))}
+        ))}
     </group>
   );
 }
 
 // =========================================================================
-// Taman & Pohon Cemara di Tengah Void Atrium (Ciri Khas Terbesar FST!)
-// Berdasarkan Foto Udara 2 (tampak-atas.png) & Foto 1 (side-view-from-the-void.png)
-// Menampilkan rumput hijau, jalan setapak batu, dan pohon cemara tinggi menjulang
+// Taman & Pohon Cemara di Tengah Void Atrium
 // =========================================================================
-function AtriumCourtyardGarden() {
+function AtriumCourtyardGarden({
+  showTrees,
+  showFurniture,
+}: {
+  showTrees: boolean;
+  showFurniture: boolean;
+}) {
   return (
     <group position={[0, 0, 0]}>
       {/* 1. Rumput Hijau Lapangan Taman Atrium */}
@@ -200,43 +229,43 @@ function AtriumCourtyardGarden() {
         <meshStandardMaterial color="#38BDF8" roughness={0.2} metalness={0.1} />
       </mesh>
 
-      {/* 4. Pohon Cemara Pinus Menjulang Tinggi (Sesuai Foto 1 - Mencapai Lantai 4!) */}
-      {[
-        { x: -7.5, z: -5.5, h: 16 },
-        { x: -5.0, z: 6.5, h: 18 },
-        { x: 6.0, z: -6.0, h: 17 },
-        { x: 8.5, z: 5.0, h: 15 },
-      ].map((tree, i) => (
-        <group key={i} position={[tree.x, 0, tree.z]}>
-          {/* Batang Pohon */}
-          <mesh position={[0, tree.h * 0.25, 0]} castShadow>
-            <cylinderGeometry args={[0.3, 0.5, tree.h * 0.5, 8]} />
-            <meshStandardMaterial color="#78350F" roughness={0.9} />
-          </mesh>
-          {/* Rimbunan Daun Cemara Kerucut Berlapis (Foto 1) */}
-          {[0.4, 0.65, 0.85].map((factor, j) => (
-            <mesh key={j} position={[0, tree.h * factor, 0]} castShadow>
-              <coneGeometry args={[3.2 - j * 0.8, tree.h * 0.35, 8]} />
-              <meshStandardMaterial color={FST_COLORS.pineTreeGreen} roughness={0.65} />
+      {/* 4. Pohon Cemara Pinus Menjulang Tinggi (Dapat Disembunyikan via Filter Objek) */}
+      {showTrees &&
+        [
+          { x: -7.5, z: -5.5, h: 16 },
+          { x: -5.0, z: 6.5, h: 18 },
+          { x: 6.0, z: -6.0, h: 17 },
+          { x: 8.5, z: 5.0, h: 15 },
+        ].map((tree, i) => (
+          <group key={i} position={[tree.x, 0, tree.z]}>
+            <mesh position={[0, tree.h * 0.25, 0]} castShadow>
+              <cylinderGeometry args={[0.3, 0.5, tree.h * 0.5, 8]} />
+              <meshStandardMaterial color="#78350F" roughness={0.9} />
             </mesh>
-          ))}
-        </group>
-      ))}
+            {[0.4, 0.65, 0.85].map((factor, j) => (
+              <mesh key={j} position={[0, tree.h * factor, 0]} castShadow>
+                <coneGeometry args={[3.2 - j * 0.8, tree.h * 0.35, 8]} />
+                <meshStandardMaterial color={FST_COLORS.pineTreeGreen} roughness={0.65} />
+              </mesh>
+            ))}
+          </group>
+        ))}
 
       {/* 5. Bangku Taman Belajar Mahasiswa di Sekitar Plaza */}
-      {[
-        { x: -8.0, z: 0 },
-        { x: 8.0, z: 0 },
-        { x: 0, z: -8.0 },
-        { x: 0, z: 8.0 },
-      ].map((bench, i) => (
-        <group key={i} position={[bench.x, 0.2, bench.z]}>
-          <mesh castShadow>
-            <boxGeometry args={[2.2, 0.35, 0.6]} />
-            <meshStandardMaterial color="#78350F" roughness={0.7} />
-          </mesh>
-        </group>
-      ))}
+      {showFurniture &&
+        [
+          { x: -8.0, z: 0 },
+          { x: 8.0, z: 0 },
+          { x: 0, z: -8.0 },
+          { x: 0, z: 8.0 },
+        ].map((bench, i) => (
+          <group key={i} position={[bench.x, 0.2, bench.z]}>
+            <mesh castShadow>
+              <boxGeometry args={[2.2, 0.35, 0.6]} />
+              <meshStandardMaterial color="#78350F" roughness={0.7} />
+            </mesh>
+          </group>
+        ))}
     </group>
   );
 }

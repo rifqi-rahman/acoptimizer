@@ -3,16 +3,26 @@ import { create } from "zustand";
 export type ViewMode = "building" | "floor" | "room";
 export type VisualizationLayer = "status" | "temperature" | "presence" | "energy";
 
+export interface ObjectVisibilityFilters {
+  cars: boolean;
+  trees: boolean;
+  furniture: boolean;
+  stairs: boolean;
+  lifts: boolean;
+  roomLabels: boolean;
+  roofAndFacade: boolean;
+}
+
 interface ViewStoreState {
   mode: ViewMode;
   selectedFloor: number; // 1 - 7
   selectedSlotId: string | null;
   layer: VisualizationLayer;
-  is2D: boolean;
+  isGrayscale: boolean; // Toggle Warna / Grayscale untuk seluruh visual
+  objectFilters: ObjectVisibilityFilters;
   isKiosk: boolean;
   cameraAzimuth: number; // Sudut putar kamera dalam radian (untuk kompas 3D)
   isSidebarExpanded: boolean;
-  isCutaway: boolean; // Potongan atap / eksplorasi interior gedung 3D
   hoveredFloor: number | null;
   hoveredSlotId: string | null;
   resetCameraTrigger: number;
@@ -24,9 +34,10 @@ interface ViewStoreState {
   selectFloor: (floor: number) => void;
   selectRoom: (slotId: string | null) => void;
   setLayer: (layer: VisualizationLayer) => void;
-  toggle2D: () => void;
-  toggleCutaway: () => void;
-  setCutaway: (cutaway: boolean) => void;
+  toggleGrayscale: () => void;
+  setGrayscale: (grayscale: boolean) => void;
+  toggleObjectFilter: (key: keyof ObjectVisibilityFilters) => void;
+  resetObjectFilters: () => void;
   setHoveredFloor: (floor: number | null) => void;
   setHoveredSlotId: (slotId: string | null) => void;
   triggerResetCamera: () => void;
@@ -37,16 +48,26 @@ interface ViewStoreState {
   openModal: (modal: "settings" | "account" | "automations" | null) => void;
 }
 
+const DEFAULT_FILTERS: ObjectVisibilityFilters = {
+  cars: true,
+  trees: true,
+  furniture: true,
+  stairs: true,
+  lifts: true,
+  roomLabels: true,
+  roofAndFacade: true,
+};
+
 export const useViewStore = create<ViewStoreState>((set) => ({
   mode: "building",
   selectedFloor: 6, // Default fokus ke Lantai 6 (lokasi ruang uji coba 601)
   selectedSlotId: null, // Awal dibuka menampilkan tinjauan keseluruhan Gedung FST
   layer: "status",
-  is2D: false,
+  isGrayscale: false,
+  objectFilters: { ...DEFAULT_FILTERS },
   isKiosk: false,
   cameraAzimuth: 0,
   isSidebarExpanded: false,
-  isCutaway: false,
   hoveredFloor: null,
   hoveredSlotId: null,
   resetCameraTrigger: 0,
@@ -65,9 +86,16 @@ export const useViewStore = create<ViewStoreState>((set) => ({
       mode: slotId ? "room" : "floor",
     }),
   setLayer: (layer) => set({ layer }),
-  toggle2D: () => set((state) => ({ is2D: !state.is2D })),
-  toggleCutaway: () => set((state) => ({ isCutaway: !state.isCutaway })),
-  setCutaway: (isCutaway) => set({ isCutaway }),
+  toggleGrayscale: () => set((state) => ({ isGrayscale: !state.isGrayscale })),
+  setGrayscale: (isGrayscale) => set({ isGrayscale }),
+  toggleObjectFilter: (key) =>
+    set((state) => ({
+      objectFilters: {
+        ...state.objectFilters,
+        [key]: !state.objectFilters[key],
+      },
+    })),
+  resetObjectFilters: () => set({ objectFilters: { ...DEFAULT_FILTERS } }),
   setHoveredFloor: (hoveredFloor) => set({ hoveredFloor }),
   setHoveredSlotId: (hoveredSlotId) => set({ hoveredSlotId }),
   triggerResetCamera: () => set((state) => ({ resetCameraTrigger: state.resetCameraTrigger + 1 })),

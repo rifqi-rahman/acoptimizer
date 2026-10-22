@@ -5,19 +5,20 @@ import { useViewStore } from "../../stores/viewStore";
 
 export const SettingsModal: React.FC = () => {
   const { activeModal, openModal } = useViewStore();
-  const { connection } = useRoomStore();
+  const { connection, brokerUrl, setBrokerUrl } = useRoomStore();
 
   const [normalTemp, setNormalTemp] = useState(22);
   const [ecoTemp, setEcoTemp] = useState(27);
   const [idleDelay, setIdleDelay] = useState(15);
   const [autoOffDelay, setAutoOffDelay] = useState(120);
-  const [brokerUrl, setBrokerUrl] = useState("ws://localhost:9001");
+  const [localBrokerUrl, setLocalBrokerUrl] = useState(brokerUrl);
   const [tariff, setTariff] = useState(1444);
   const [saved, setSaved] = useState(false);
 
   if (activeModal !== "settings") return null;
 
   const handleSave = () => {
+    setBrokerUrl(localBrokerUrl.trim());
     setSaved(true);
     setTimeout(() => {
       setSaved(false);
@@ -167,12 +168,12 @@ export const SettingsModal: React.FC = () => {
               </label>
               <input
                 type="text"
-                value={brokerUrl}
-                onChange={(e) => setBrokerUrl(e.target.value)}
+                value={localBrokerUrl}
+                onChange={(e) => setLocalBrokerUrl(e.target.value)}
                 className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-800 font-mono text-xs"
               />
               <span className="text-[11px] text-slate-400 block">
-                Format topik: <code>acoptimizer/v1/&#123;slot&#125;/telemetry</code>
+                Format topik: <code>acoptimizer/fst-uin/v1/6-U1/telemetry</code>
               </span>
             </div>
           </div>

@@ -10,12 +10,10 @@ import { useViewStore } from "../../stores/viewStore";
  * - B (Barat): Sisi samping kanan gedung (+X)
  */
 export const CompassHUD: React.FC = () => {
-  const { cameraAzimuth, is2D, triggerResetCamera } = useViewStore();
+  const { cameraAzimuth, triggerResetCamera } = useViewStore();
 
-  // Rotasi dial kompas (dalam derajat)
-  // Di 3D: rotDeg = (cameraAzimuth * 180) / Math.PI
-  // Di 2D: denah 2D memiliki Sisi Utara di atas (rotDeg = 180)
-  const rotDeg = is2D ? 180 : (cameraAzimuth * 180) / Math.PI;
+  // Rotasi dial kompas 3D (dalam derajat)
+  const rotDeg = (cameraAzimuth * 180) / Math.PI;
 
   // Hitung posisi koordinat huruf mata angin di sekeliling lingkaran kompas
   // Diameter viewBox = 72x72, Center = (36, 36), Radius = 24.5px
@@ -62,17 +60,9 @@ export const CompassHUD: React.FC = () => {
 
   return (
     <div
-      onClick={() => !is2D && triggerResetCamera()}
-      title={
-        is2D
-          ? "Denah 2D (Sisi Utara ke Atas)"
-          : "Kompas Gedung FST (U=Utara, T=Timur, S=Selatan, B=Barat)\nKlik untuk reset orientasi kamera ke Sisi Utara (Depan)"
-      }
-      className={`absolute top-4 right-4 z-30 pointer-events-auto w-20 h-20 rounded-full bg-white/95 backdrop-blur-md shadow-xl border border-slate-200/90 select-none p-1 flex items-center justify-center transition-all duration-150 ${
-        !is2D
-          ? "cursor-pointer hover:scale-105 active:scale-95 hover:shadow-2xl hover:border-slate-300"
-          : ""
-      }`}
+      onClick={() => triggerResetCamera()}
+      title="Kompas Gedung FST (U=Utara, T=Timur, S=Selatan, B=Barat)&#10;Klik untuk reset orientasi kamera ke Sisi Utara (Depan)"
+      className="absolute top-4 right-4 z-30 pointer-events-auto w-20 h-20 rounded-full bg-white/95 backdrop-blur-md shadow-xl border border-slate-200/90 select-none p-1 flex items-center justify-center transition-all duration-150 cursor-pointer hover:scale-105 active:scale-95 hover:shadow-2xl hover:border-slate-300"
     >
       {/* Dial Kompas Interaktif Diperbesar dengan 4 Tanda Baca Mata Angin (U, T, S, B) */}
       <div className="relative w-full h-full rounded-full bg-slate-900 shadow-inner flex items-center justify-center overflow-hidden border border-slate-700/70">

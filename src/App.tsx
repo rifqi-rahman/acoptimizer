@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { generateEntireBuilding } from "./building/generator";
-import { useMockSimulation } from "./data/MockSimulation";
+import { useMqttLive } from "./data/useMqttLive";
 import { CompassHUD } from "./features/hud/CompassHUD";
 import { FloorRail } from "./features/hud/FloorRail";
 import { PanelTopControls } from "./features/hud/PanelTopControls";
@@ -8,14 +8,13 @@ import { SidePanel } from "./features/hud/SidePanel";
 import { AccountModal } from "./features/modals/AccountModal";
 import { AutomationsModal } from "./features/modals/AutomationsModal";
 import { SettingsModal } from "./features/modals/SettingsModal";
-import { FloorPlan2D } from "./features/plan2d/FloorPlan2D";
 import { AppSidebar } from "./features/sidebar/AppSidebar";
 import { TwinCanvas } from "./features/twin3d/TwinCanvas";
 import { useRoomStore } from "./stores/roomStore";
 import { useViewStore } from "./stores/viewStore";
 
 export function App() {
-  const { mode, selectedFloor, selectedSlotId, is2D } = useViewStore();
+  const { selectedFloor, selectedSlotId } = useViewStore();
   const { initializeRooms } = useRoomStore();
 
   // Buat model spasial 7 lantai Gedung FST (Atrium)
@@ -32,8 +31,8 @@ export function App() {
     initializeRooms(allSlots);
   }, [floors, initializeRooms]);
 
-  // Aktifkan simulator telemetri client
-  useMockSimulation(true);
+  // Aktifkan koneksi real-time MQTT ke perangkat IoT ESP32 (Ruang R.601 / 6-U1)
+  useMqttLive(true);
 
   // Ambil data lantai & ruangan terpilih
   const currentFloor = useMemo(
@@ -59,13 +58,9 @@ export function App() {
       <main className="flex-1 w-full h-full flex gap-3 min-w-0 overflow-hidden relative z-10">
         {/* Visual Container: 3/4 Width (75%) Align Kiri */}
         <section className="w-3/4 h-full relative rounded-3xl bg-white shadow-xl border border-slate-200/90 overflow-hidden flex flex-col isolate">
-          {/* Visual Canvas (2D / 3D) - Terisolasi di layer z-0 agar elemen 3D Html tidak pernah menembus HUD/Sidebar */}
+          {/* Visual Canvas 3D - Terisolasi di layer z-0 agar elemen 3D Html tidak pernah menembus HUD/Sidebar */}
           <div className="w-full h-full relative z-0 isolate overflow-hidden">
-            {is2D ? (
-              <FloorPlan2D floor={currentFloor} />
-            ) : (
-              <TwinCanvas floors={floors} />
-            )}
+            <TwinCanvas floors={floors} />
           </div>
 
           {/* Kontrol HUD Lengkap di Dalam Panel Visual (Layer Teratas z-30) */}
