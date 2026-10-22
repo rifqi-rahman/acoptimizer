@@ -730,9 +730,44 @@ function TheaterAmphitheaterSeating({ level }: { level: number }) {
 
   return (
     <group>
-      {/* Teater 1 (Pojok Kiri Depan / Barat Laut) */}
-      <group position={[-28.0, 0, 24.0]}>
-        {/* Dinding Biru Akustik (Foto Asli) */}
+      {/* Teater 1 (Pojok Kiri Depan / Barat Laut: Ruang TR1 di [-28.0, 0, -24.0]) */}
+      <group position={[-28.0, 0, -24.0]}>
+        {/* Dinding Biru Akustik (Foto Asli) Menempel ke Dinding Luar Utara */}
+        <mesh position={[0, 1.2, -4.4]}>
+          <boxGeometry args={[8.8, 2.2, 0.15]} />
+          <meshStandardMaterial color="#1D4ED8" roughness={0.6} />
+        </mesh>
+
+        {/* Layar Proyektor Putih Besar */}
+        <mesh position={[0, 1.4, -4.3]}>
+          <boxGeometry args={[5.2, 1.6, 0.05]} />
+          <meshStandardMaterial color="#FFFFFF" roughness={0.3} />
+        </mesh>
+
+        {/* Panggung Kayu di Depan Layar */}
+        <mesh position={[0, 0.2, -3.2]} castShadow>
+          <boxGeometry args={[6.8, 0.35, 1.8]} />
+          <meshStandardMaterial color="#B45309" roughness={0.6} />
+        </mesh>
+
+        {/* 3 Tingkat Tempat Duduk Berundak Oranye Menghadap Layar */}
+        {[0, 1, 2].map((step) => {
+          const z = -1.2 + step * 1.6;
+          const y = 0.2 + step * 0.32;
+          return (
+            <group key={step} position={[0, y, z]}>
+              <mesh castShadow receiveShadow>
+                <boxGeometry args={[7.2, 0.3, 1.2]} />
+                <meshStandardMaterial color="#D97706" roughness={0.5} />
+              </mesh>
+            </group>
+          );
+        })}
+      </group>
+
+      {/* Teater 2 (Pojok Kanan Belakang / Tenggara: Ruang TR2 di [28.0, 0, 24.0]) */}
+      <group position={[28.0, 0, 24.0]}>
+        {/* Dinding Biru Akustik (Foto Asli) Menempel ke Dinding Luar Selatan */}
         <mesh position={[0, 1.2, 4.4]}>
           <boxGeometry args={[8.8, 2.2, 0.15]} />
           <meshStandardMaterial color="#1D4ED8" roughness={0.6} />
@@ -750,38 +785,9 @@ function TheaterAmphitheaterSeating({ level }: { level: number }) {
           <meshStandardMaterial color="#B45309" roughness={0.6} />
         </mesh>
 
-        {/* 3 Tingkat Tempat Duduk Berundak Oranye (Foto Asli) */}
+        {/* 3 Tingkat Tempat Duduk Berundak Oranye Menghadap Layar */}
         {[0, 1, 2].map((step) => {
           const z = 1.2 - step * 1.6;
-          const y = 0.2 + step * 0.32;
-          return (
-            <group key={step} position={[0, y, z]}>
-              <mesh castShadow receiveShadow>
-                <boxGeometry args={[7.2, 0.3, 1.2]} />
-                <meshStandardMaterial color="#D97706" roughness={0.5} />
-              </mesh>
-            </group>
-          );
-        })}
-      </group>
-
-      {/* Teater 2 (Pojok Tenggara - SE) */}
-      <group position={[28.0, 0, -24.0]}>
-        <mesh position={[0, 1.2, -4.4]}>
-          <boxGeometry args={[8.8, 2.2, 0.15]} />
-          <meshStandardMaterial color="#1D4ED8" roughness={0.6} />
-        </mesh>
-        <mesh position={[0, 1.4, -4.3]}>
-          <boxGeometry args={[5.2, 1.6, 0.05]} />
-          <meshStandardMaterial color="#FFFFFF" roughness={0.3} />
-        </mesh>
-        <mesh position={[0, 0.2, -3.2]} castShadow>
-          <boxGeometry args={[6.8, 0.35, 1.8]} />
-          <meshStandardMaterial color="#B45309" roughness={0.6} />
-        </mesh>
-
-        {[0, 1, 2].map((step) => {
-          const z = -1.2 + step * 1.6;
           const y = 0.2 + step * 0.32;
           return (
             <group key={step} position={[0, y, z]}>
