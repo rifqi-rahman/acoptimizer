@@ -830,9 +830,13 @@ function InteractiveRoomBox({
   const isPilot = room.hasDevice;
   const isFloor1Corridor =
     room.level === 1 &&
-    (room.slotId.includes("-U") || room.slotId.includes("-S") || room.slotId.includes("-B"));
+    (room.slotId.includes("-U") ||
+      room.slotId.includes("-S") ||
+      room.slotId.includes("-B") ||
+      (room.slotId.includes("-T") && room.slotId !== "1-T-KANTIN"));
   const isFloor1Lobby =
     room.level === 1 && (room.slotId === "1-CU" || room.slotId === "1-CS");
+  const isFloor1Canteen = room.level === 1 && room.slotId === "1-T-KANTIN";
 
   return (
     <group position={[room.center[0], 0, -room.center[1]]}>
@@ -860,8 +864,8 @@ function InteractiveRoomBox({
         />
       </mesh>
 
-      {/* Dinding Partisi Pembatas Ruang (Tembok Putih Halus) - Ditiadakan pada lorong terbuka Lantai 1 */}
-      {!isFloor1Corridor && !isFloor1Lobby && (
+      {/* Dinding Partisi Pembatas Ruang Standar (Tembok Putih Halus) - Ditiadakan pada lorong terbuka Lantai 1 */}
+      {!isFloor1Corridor && !isFloor1Lobby && !isFloor1Canteen && (
         <>
           <mesh position={[-room.size[0] * 0.47, wallH / 2, 0]} castShadow receiveShadow>
             <boxGeometry args={[0.18, wallH, room.size[1] * 0.92]} />
@@ -872,6 +876,78 @@ function InteractiveRoomBox({
             <meshStandardMaterial color="#FFFFFF" roughness={0.8} />
           </mesh>
         </>
+      )}
+
+      {/* Dinding Partisi Khusus Ruang Kantin Lantai 1 (1 Partisi Ruangan Agak Besar dengan Pintu Masuk ke Selasar) */}
+      {isFloor1Canteen && (
+        <group>
+          {/* Dinding Pemisah Utara (Batas antara Kantin & Lorong Terbuka Belajar) */}
+          <mesh position={[0, wallH / 2, -room.size[1] * 0.48]} castShadow receiveShadow>
+            <boxGeometry args={[room.size[0] * 0.96, wallH, 0.22]} />
+            <meshStandardMaterial color="#FFFFFF" roughness={0.8} />
+          </mesh>
+
+          {/* Dinding Pemisah Selatan (Batas antara Kantin & Area Dapur/Service) */}
+          <mesh position={[0, wallH / 2, room.size[1] * 0.48]} castShadow receiveShadow>
+            <boxGeometry args={[room.size[0] * 0.96, wallH, 0.22]} />
+            <meshStandardMaterial color="#FFFFFF" roughness={0.8} />
+          </mesh>
+
+          {/* Dinding Dalam Menghadap Void / Selasar dengan Bukaan Pintu Masuk Lebar di Tengah */}
+          <mesh
+            position={[-room.size[0] * 0.47, wallH / 2, -room.size[1] * 0.28]}
+            castShadow
+            receiveShadow
+          >
+            <boxGeometry args={[0.22, wallH, room.size[1] * 0.38]} />
+            <meshStandardMaterial color="#FFFFFF" roughness={0.8} />
+          </mesh>
+          <mesh
+            position={[-room.size[0] * 0.47, wallH / 2, room.size[1] * 0.28]}
+            castShadow
+            receiveShadow
+          >
+            <boxGeometry args={[0.22, wallH, room.size[1] * 0.38]} />
+            <meshStandardMaterial color="#FFFFFF" roughness={0.8} />
+          </mesh>
+
+          {/* Interior Furnitur Kantin Mahasiswa (Etalase Makanan / Bar Prasmanan & Deretan Meja Makan) */}
+          {/* Meja Bar Layanan / Prasmanan Makanan di Sisi Dinding Luar */}
+          <mesh position={[room.size[0] * 0.3, 0.5, 0]} castShadow>
+            <boxGeometry args={[1.2, 1.0, room.size[1] * 0.72]} />
+            <meshStandardMaterial color="#1E293B" roughness={0.3} />
+          </mesh>
+          <mesh position={[room.size[0] * 0.3, 1.02, 0]}>
+            <boxGeometry args={[1.35, 0.06, room.size[1] * 0.74]} />
+            <meshStandardMaterial color="#F59E0B" roughness={0.3} />
+          </mesh>
+
+          {/* Meja Makan Kantin Berjejer Rapi dengan Kursi */}
+          {[-6.2, -2.1, 2.1, 6.2].map((zPos, idx) => (
+            <group key={idx} position={[-room.size[0] * 0.1, 0, zPos]}>
+              <mesh position={[0, 0.46, 0]} castShadow>
+                <boxGeometry args={[1.7, 0.06, 0.95]} />
+                <meshStandardMaterial color="#F8FAFC" roughness={0.4} />
+              </mesh>
+              <mesh position={[0, 0.23, 0]}>
+                <boxGeometry args={[0.08, 0.46, 0.08]} />
+                <meshStandardMaterial color="#0F172A" roughness={0.4} />
+              </mesh>
+              {[-0.6, 0.6].map((cx, cIdx) => (
+                <group key={cIdx} position={[cx, 0, 0]}>
+                  <mesh position={[0, 0.26, 0]} castShadow>
+                    <cylinderGeometry args={[0.2, 0.2, 0.05, 16]} />
+                    <meshStandardMaterial color="#0284C7" roughness={0.5} />
+                  </mesh>
+                  <mesh position={[0, 0.13, 0]}>
+                    <cylinderGeometry args={[0.03, 0.03, 0.26, 8]} />
+                    <meshStandardMaterial color="#0F172A" roughness={0.4} />
+                  </mesh>
+                </group>
+              ))}
+            </group>
+          ))}
+        </group>
       )}
 
       {/* Furnitur Simbolis di Dalam Ruang Kelas / Lab (Lantai 2 - 7) */}
@@ -890,11 +966,15 @@ function InteractiveRoomBox({
         </group>
       )}
 
-      {/* Lantai 1 Bagian Lorong (Sayap Utara, Selatan, & Barat): Pasangan Meja Memanjang & Kursi Panjang Komunal Berjarak */}
+      {/* Lantai 1 Bagian Lorong (Sayap Utara, Selatan, Barat, & Timur): Pasangan Meja Memanjang & Kursi Panjang Komunal Berjarak */}
       {isFloor1Corridor && (
         <CommunalTableSet
           position={[0, 0, 0]}
-          rotation={room.slotId.includes("-B") ? [0, Math.PI / 2, 0] : [0, 0, 0]}
+          rotation={
+            room.slotId.includes("-B") || room.slotId.includes("-T")
+              ? [0, Math.PI / 2, 0]
+              : [0, 0, 0]
+          }
         />
       )}
 

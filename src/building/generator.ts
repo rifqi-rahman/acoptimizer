@@ -98,10 +98,10 @@ export function generateFloorModel(
     true
   );
 
-  // Pojok Tenggara (SE): Ruang Teater 2 / Kantin di Lt 1
+  // Pojok Tenggara (SE): Ruang Teater 2 / Dapur Kantin di Lt 1
   addRoom(
     `${level}-TR2`,
-    level === 1 ? "Kantin Mahasiswa" : level === 2 ? "Ruang Teater 2 (Auditorium)" : `Ruang Teater SE ${level}`,
+    level === 1 ? "Dapur & Layanan Kantin" : level === 2 ? "Ruang Teater 2 (Auditorium)" : `Ruang Teater SE ${level}`,
     level === 1 ? "service" : "theater",
     halfW - rDepth,
     halfW,
@@ -258,30 +258,61 @@ export function generateFloorModel(
     );
   }
 
-  // Sayap Timur: 6 Ruang Kelas / Lab berjejer dari Selatan ke Utara
-  for (let i = 0; i < 6; i++) {
-    const yMin = -halfD + rDepth + i * bRoomH;
-    const yMax = yMin + bRoomH;
-    const slot = `${level}-T${i + 1}`;
-    const roomNum = `${level}${i + 19}`;
-    const isLab = level === 7 || (level === 6 && i >= 4);
-    const displayName =
-      level === 1
-        ? `Area Belajar Bersama T${i + 1}`
-        : level === 2
-        ? `Ruang Administrasi T${i + 1}`
-        : isLab
-        ? `Laboratorium Riset ${roomNum}`
-        : `Ruang ${roomNum}`;
+  // Sayap Timur: Khusus Lantai 1 terdapat 1 Ruang Kantin agak besar & selebihnya lorong terbuka
+  if (level === 1) {
+    const kantinYEnd = 0.5;
     addRoom(
-      slot,
-      displayName,
-      level === 1 ? "lobby" : level === 2 ? "office" : isLab ? "lab" : "classroom",
+      `1-T-KANTIN`,
+      `Kantin`,
+      "service",
       halfW - rDepth,
       halfW,
-      yMin,
-      yMax
+      -halfD + rDepth,
+      kantinYEnd,
+      false
     );
+
+    // Selebihnya: Lorong Terbuka Belajar Komunal (3 Bay tanpa partisi & tanpa bubble text)
+    const openSpan = halfD - rDepth - kantinYEnd;
+    const openBayH = openSpan / 3;
+    for (let i = 0; i < 3; i++) {
+      const yMin = kantinYEnd + i * openBayH;
+      const yMax = yMin + openBayH;
+      addRoom(
+        `1-T${i + 1}`,
+        `Area Belajar T${i + 1}`,
+        "lobby",
+        halfW - rDepth,
+        halfW,
+        yMin,
+        yMax,
+        false
+      );
+    }
+  } else {
+    // Sayap Timur: 6 Ruang Kelas / Lab berjejer dari Selatan ke Utara (Lantai 2 - 7)
+    for (let i = 0; i < 6; i++) {
+      const yMin = -halfD + rDepth + i * bRoomH;
+      const yMax = yMin + bRoomH;
+      const slot = `${level}-T${i + 1}`;
+      const roomNum = `${level}${i + 19}`;
+      const isLab = level === 7 || (level === 6 && i >= 4);
+      const displayName =
+        level === 2
+          ? `Ruang Administrasi T${i + 1}`
+          : isLab
+          ? `Laboratorium Riset ${roomNum}`
+          : `Ruang ${roomNum}`;
+      addRoom(
+        slot,
+        displayName,
+        level === 2 ? "office" : isLab ? "lab" : "classroom",
+        halfW - rDepth,
+        halfW,
+        yMin,
+        yMax
+      );
+    }
   }
 
   // Khusus Lantai 1: Tambahkan representasi Taman Atrium Tengah
