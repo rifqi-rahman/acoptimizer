@@ -3,7 +3,6 @@ import { generateEntireBuilding } from "./building/generator";
 import { useMockSimulation } from "./data/MockSimulation";
 import { CompassHUD } from "./features/hud/CompassHUD";
 import { FloorRail } from "./features/hud/FloorRail";
-import { LayerSwitcher } from "./features/hud/LayerSwitcher";
 import { PanelTopControls } from "./features/hud/PanelTopControls";
 import { SidePanel } from "./features/hud/SidePanel";
 import { AccountModal } from "./features/modals/AccountModal";
@@ -73,7 +72,6 @@ export function App() {
           <PanelTopControls />
           <CompassHUD />
           <FloorRail />
-          <LayerSwitcher />
         </section>
 
         {/* Right Aside Panel: 1/4 Width (25%) */}

@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import * as THREE from "three";
 import { Html } from "@react-three/drei";
-import { Activity, Flame, Sparkles, User, Zap } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { FloorModel, RoomGeometry } from "../../building/params";
 import { deriveRoomStatus, RoomClimateStatus } from "../../domain/roomStatus";
 import { useRoomStore } from "../../stores/roomStore";
@@ -53,8 +53,6 @@ export const Floor3DCutaway: React.FC<Floor3DCutawayProps> = ({ floor, onRoomSel
         const isHovered = hoveredSlotId === room.slotId;
 
         const temp = live?.temperature ?? (room.hasDevice ? 23.8 : 25.5);
-        const humidity = live?.humidity ?? (room.hasDevice ? 58 : 62);
-        const presence = live?.presence ?? (room.hasDevice ? true : false);
         const acMode = live?.acMode ?? (room.hasDevice ? "COOL" : null);
 
         return (
@@ -64,8 +62,6 @@ export const Floor3DCutaway: React.FC<Floor3DCutawayProps> = ({ floor, onRoomSel
             color={color}
             status={status}
             temp={temp}
-            humidity={humidity}
-            presence={presence}
             acMode={acMode}
             isSelected={isSelected}
             isHovered={isHovered}
@@ -735,15 +731,13 @@ function TheaterAmphitheaterSeating({ level }: { level: number }) {
 
 // =========================================================================
 // 7. Kotak Ruangan Interaktif (Lantai Berwarna Heatmap, Dinding Partisi,
-// Badge 3D, Indikator Pilot R.601, & Tooltip Sensor Live)
+// Badge 3D, & Indikator Pilot R.601)
 // =========================================================================
 function InteractiveRoomBox({
   room,
   color,
   status,
   temp,
-  humidity,
-  presence,
   acMode,
   isSelected,
   isHovered,
@@ -755,8 +749,6 @@ function InteractiveRoomBox({
   color: string;
   status: RoomClimateStatus;
   temp: number;
-  humidity: number;
-  presence: boolean;
   acMode: string | null;
   isSelected: boolean;
   isHovered: boolean;
@@ -977,48 +969,6 @@ function InteractiveRoomBox({
             }`}
           >
             {room.displayName.replace("Ruang ", "R.")}
-          </div>
-        </Html>
-      )}
-
-      {/* Floating Tooltip Sensor Saat Cursor Hover di Atas Ruangan */}
-      {isHovered && !isPilot && (
-        <Html position={[0, 2.0, 0]} center distanceFactor={42} zIndexRange={[20, 0]}>
-          <div className="pointer-events-none p-2.5 rounded-2xl bg-slate-900/95 backdrop-blur-md text-white shadow-2xl border border-slate-700/80 w-44 flex flex-col gap-1.5 z-50">
-            <div className="flex items-center justify-between border-b border-slate-700/80 pb-1">
-              <span className="text-xs font-black text-slate-100 truncate">
-                {room.displayName}
-              </span>
-              <span
-                className="text-[9px] font-bold px-1.5 py-0.5 rounded-full text-white"
-                style={{ backgroundColor: color }}
-              >
-                {status}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-1 text-[10px]">
-              <div className="flex items-center gap-1 text-slate-300">
-                <Flame className="w-3 h-3 text-amber-400" />
-                <span>{temp.toFixed(1)}°C</span>
-              </div>
-              <div className="flex items-center gap-1 text-slate-300">
-                <Activity className="w-3 h-3 text-blue-400" />
-                <span>{humidity}% RH</span>
-              </div>
-              <div className="flex items-center gap-1 text-slate-300">
-                <User className="w-3 h-3 text-emerald-400" />
-                <span>{presence ? "Ada Orang" : "Kosong"}</span>
-              </div>
-              <div className="flex items-center gap-1 text-slate-300">
-                <Zap className="w-3 h-3 text-amber-300" />
-                <span>AC: {acMode ?? "OFF"}</span>
-              </div>
-            </div>
-
-            <div className="text-[9px] text-blue-300 font-semibold text-center pt-0.5">
-              Klik untuk inspeksi ruangan
-            </div>
           </div>
         </Html>
       )}
