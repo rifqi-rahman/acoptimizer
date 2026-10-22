@@ -339,31 +339,31 @@ function AtriumCutawayBalcony() {
 }
 
 // =========================================================================
-// 4. Tangga Imperial & 2 Lift di dalam Core Setengah Lingkaran Sisi Void
-// Visual geometri berundak (kotak-kotak tangga) di area setengah lingkaran & selasar persegi
+// 4. Tangga di dalam Core Setengah Lingkaran Sisi Void (Berseberangan dengan Lift)
+// Visual geometri berundak (kotak-kotak tangga) di area setengah lingkaran & tepi selasar
 // =========================================================================
-function CoreStairsAndLiftsUnit() {
-  // Anak tangga lurus dari selasar persegi menuju bordes setengah lingkaran
+function CoreCutawayStairs() {
+  // Anak tangga lurus dari selasar menuju bordes setengah lingkaran
   const centralSteps = [
-    { z: 1.35, y: 0.42, w: 3.2, d: 0.28 },
-    { z: 1.07, y: 0.35, w: 3.2, d: 0.28 },
-    { z: 0.79, y: 0.28, w: 3.2, d: 0.28 },
-    { z: 0.51, y: 0.21, w: 3.2, d: 0.28 },
-    { z: 0.23, y: 0.14, w: 3.2, d: 0.28 },
+    { z: 0.60, y: 0.35, w: 3.2, d: 0.28 },
+    { z: 0.32, y: 0.28, w: 3.2, d: 0.28 },
+    { z: 0.04, y: 0.21, w: 3.2, d: 0.28 },
+    { z: -0.24, y: 0.14, w: 3.2, d: 0.28 },
+    { z: -0.52, y: 0.07, w: 3.2, d: 0.28 },
   ];
 
   // Dua cabang tangga (kiri & kanan) di dalam area setengah lingkaran menjorok ke arah void
   const branchSteps = [
-    { z: -1.05, y: 0.14, w: 1.4, d: 0.28 },
-    { z: -1.35, y: 0.21, w: 1.4, d: 0.28 },
-    { z: -1.65, y: 0.28, w: 1.4, d: 0.28 },
-    { z: -1.95, y: 0.35, w: 1.4, d: 0.28 },
-    { z: -2.25, y: 0.42, w: 1.4, d: 0.28 },
+    { z: -1.35, y: 0.10, w: 1.4, d: 0.28 },
+    { z: -1.63, y: 0.17, w: 1.4, d: 0.28 },
+    { z: -1.91, y: 0.24, w: 1.4, d: 0.28 },
+    { z: -2.19, y: 0.31, w: 1.4, d: 0.28 },
+    { z: -2.47, y: 0.38, w: 1.4, d: 0.28 },
   ];
 
   return (
     <group>
-      {/* A. Anak Tangga Utama di Selasar Persegi (Kotak-kotak tangga bertingkat) */}
+      {/* A. Anak Tangga Utama di Selasar (Kotak-kotak tangga bertingkat) */}
       {centralSteps.map((s, i) => (
         <group key={`c-step-${i}`} position={[0, 0, s.z]}>
           {/* Badan Riser Tangga */}
@@ -387,29 +387,29 @@ function CoreStairsAndLiftsUnit() {
       {/* Handrail Tangga Utama (Kiri & Kanan) */}
       {[-1.65, 1.65].map((x, i) => (
         <group key={`c-rail-${i}`} position={[x, 0, 0]}>
-          <mesh position={[0, 0.7, 0.79]} rotation={[-0.24, 0, 0]}>
-            <boxGeometry args={[0.04, 0.06, 1.5]} />
+          <mesh position={[0, 0.58, 0.04]} rotation={[-0.24, 0, 0]}>
+            <boxGeometry args={[0.04, 0.06, 1.4]} />
             <meshStandardMaterial color="#334155" metalness={0.8} roughness={0.3} />
           </mesh>
-          <mesh position={[0, 0.45, 1.35]}>
-            <boxGeometry args={[0.04, 0.9, 0.04]} />
+          <mesh position={[0, 0.45, 0.6]}>
+            <boxGeometry args={[0.04, 0.8, 0.04]} />
             <meshStandardMaterial color="#475569" metalness={0.8} roughness={0.3} />
           </mesh>
-          <mesh position={[0, 0.45, 0.23]}>
-            <boxGeometry args={[0.04, 0.9, 0.04]} />
+          <mesh position={[0, 0.45, -0.52]}>
+            <boxGeometry args={[0.04, 0.8, 0.04]} />
             <meshStandardMaterial color="#475569" metalness={0.8} roughness={0.3} />
           </mesh>
         </group>
       ))}
 
       {/* B. Bordes / Landing Tengah Tangga di Titik Transisi Setengah Lingkaran */}
-      <group position={[0, 0, -0.45]}>
-        <mesh position={[0, 0.07, 0]} castShadow receiveShadow>
-          <boxGeometry args={[3.8, 0.14, 0.88]} />
+      <group position={[0, 0, -0.9]}>
+        <mesh position={[0, 0.04, 0]} castShadow receiveShadow>
+          <boxGeometry args={[3.8, 0.08, 0.85]} />
           <meshStandardMaterial color="#E2E8F0" roughness={0.7} />
         </mesh>
-        <mesh position={[0, 0.15, 0]}>
-          <boxGeometry args={[3.84, 0.02, 0.9]} />
+        <mesh position={[0, 0.09, 0]}>
+          <boxGeometry args={[3.84, 0.02, 0.87]} />
           <meshStandardMaterial color="#F8FAFC" roughness={0.6} />
         </mesh>
       </group>
@@ -439,50 +439,76 @@ function CoreStairsAndLiftsUnit() {
 
           {/* Handrail Cabang Luar */}
           <group position={[bIdx === 0 ? -0.75 : 0.75, 0, 0]}>
-            <mesh position={[0, 0.7, -1.65]} rotation={[0.24, 0, 0]}>
-              <boxGeometry args={[0.04, 0.06, 1.6]} />
+            <mesh position={[0, 0.58, -1.91]} rotation={[0.24, 0, 0]}>
+              <boxGeometry args={[0.04, 0.06, 1.4]} />
               <meshStandardMaterial color="#334155" metalness={0.8} roughness={0.3} />
             </mesh>
-            <mesh position={[0, 0.45, -1.05]}>
-              <boxGeometry args={[0.04, 0.9, 0.04]} />
+            <mesh position={[0, 0.45, -1.35]}>
+              <boxGeometry args={[0.04, 0.8, 0.04]} />
               <meshStandardMaterial color="#475569" metalness={0.8} roughness={0.3} />
             </mesh>
-            <mesh position={[0, 0.45, -2.25]}>
-              <boxGeometry args={[0.04, 0.9, 0.04]} />
+            <mesh position={[0, 0.45, -2.47]}>
+              <boxGeometry args={[0.04, 0.8, 0.04]} />
               <meshStandardMaterial color="#475569" metalness={0.8} roughness={0.3} />
             </mesh>
           </group>
         </group>
       ))}
+    </group>
+  );
+}
 
-      {/* D. Dua Unit Lift Penumpang di Dinding Selasar Persegi */}
-      {[-3.6, 3.6].map((xLift, i) => (
-        <group key={`lift-${i}`} position={[xLift, 0, 1.3]}>
-          {/* Kusen Pintu Lift */}
-          <mesh position={[0, 1.15, 0]} castShadow>
-            <boxGeometry args={[1.7, 2.3, 0.14]} />
-            <meshStandardMaterial color="#475569" metalness={0.6} roughness={0.4} />
-          </mesh>
-          {/* Daun Pintu Stainless Steel Double Leaf */}
-          <mesh position={[-0.4, 1.1, 0.02]}>
-            <boxGeometry args={[0.76, 2.15, 0.04]} />
-            <meshStandardMaterial color="#94A3B8" metalness={0.8} roughness={0.25} />
-          </mesh>
-          <mesh position={[0.4, 1.1, 0.02]}>
-            <boxGeometry args={[0.76, 2.15, 0.04]} />
-            <meshStandardMaterial color="#94A3B8" metalness={0.8} roughness={0.25} />
-          </mesh>
-          {/* Display Indikator Lantai Digital di Atas Pintu */}
-          <mesh position={[0, 2.1, 0.08]}>
-            <boxGeometry args={[0.45, 0.16, 0.02]} />
-            <meshStandardMaterial color="#0F172A" roughness={0.2} />
-          </mesh>
-          <mesh position={[0, 2.1, 0.095]}>
-            <boxGeometry args={[0.32, 0.08, 0.005]} />
-            <meshStandardMaterial color="#38BDF8" emissive="#38BDF8" emissiveIntensity={0.8} />
-          </mesh>
-        </group>
-      ))}
+// Unit Lift Realistis Sesuai Foto Asli FST (Champagne Frame, Stainless Double Leaf, Lis Kuning, Display LCD)
+function LiftUnit({
+  position,
+  rotation,
+}: {
+  position: [number, number, number];
+  rotation?: [number, number, number];
+}) {
+  return (
+    <group position={position} rotation={rotation}>
+      {/* Kusen Pintu Lift Champagne/Beige (Sesuai Foto Asli FST) */}
+      <mesh position={[0, 1.15, 0]} castShadow>
+        <boxGeometry args={[1.7, 2.3, 0.12]} />
+        <meshStandardMaterial color="#E2E8F0" roughness={0.5} />
+      </mesh>
+      {/* Daun Pintu Stainless Steel Double Leaf */}
+      <mesh position={[-0.39, 1.1, 0.02]}>
+        <boxGeometry args={[0.74, 2.15, 0.03]} />
+        <meshStandardMaterial color="#F1F5F9" metalness={0.7} roughness={0.3} />
+      </mesh>
+      <mesh position={[0.39, 1.1, 0.02]}>
+        <boxGeometry args={[0.74, 2.15, 0.03]} />
+        <meshStandardMaterial color="#F1F5F9" metalness={0.7} roughness={0.3} />
+      </mesh>
+      {/* Garis Aksen Grafis Kuning FST pada Pintu (Sesuai Foto Asli Saintek Hub) */}
+      <mesh position={[-0.39, 0.8, 0.036]}>
+        <boxGeometry args={[0.12, 1.2, 0.005]} />
+        <meshStandardMaterial color="#F59E0B" roughness={0.4} />
+      </mesh>
+      <mesh position={[0.39, 0.8, 0.036]}>
+        <boxGeometry args={[0.12, 1.2, 0.005]} />
+        <meshStandardMaterial color="#F59E0B" roughness={0.4} />
+      </mesh>
+      {/* Display Indikator Lantai Digital di Atas Pintu */}
+      <mesh position={[0, 2.12, 0.07]}>
+        <boxGeometry args={[0.42, 0.14, 0.02]} />
+        <meshStandardMaterial color="#0F172A" roughness={0.2} />
+      </mesh>
+      <mesh position={[0, 2.12, 0.082]}>
+        <boxGeometry args={[0.3, 0.07, 0.005]} />
+        <meshStandardMaterial color="#38BDF8" emissive="#38BDF8" emissiveIntensity={0.9} />
+      </mesh>
+      {/* Panel Tombol Panggil Lift di Samping Kusen */}
+      <mesh position={[0.74, 1.1, 0.05]}>
+        <boxGeometry args={[0.08, 0.22, 0.02]} />
+        <meshStandardMaterial color="#475569" roughness={0.3} />
+      </mesh>
+      <mesh position={[0.74, 1.1, 0.062]}>
+        <boxGeometry args={[0.04, 0.04, 0.005]} />
+        <meshStandardMaterial color="#F59E0B" emissive="#F59E0B" emissiveIntensity={0.8} />
+      </mesh>
     </group>
   );
 }
@@ -490,14 +516,20 @@ function CoreStairsAndLiftsUnit() {
 function CutawayCoreStairsAndLifts({ level: _level }: { level: number }) {
   return (
     <group>
-      {/* Core Utara: Tangga & 2 Lift di dalam Setengah Lingkaran + Selasar */}
+      {/* Tangga Sisi Utara: di dalam Area Setengah Lingkaran Menghadap Void */}
       <group position={[0, 0, 17.0]}>
-        <CoreStairsAndLiftsUnit />
+        <CoreCutawayStairs />
       </group>
 
-      {/* Core Selatan: Tangga & 2 Lift (Diputar 180° menghadap void selatan) */}
+      {/* Tangga Sisi Selatan: di dalam Area Setengah Lingkaran Menghadap Void (Diputar 180°) */}
       <group position={[0, 0, -17.0]} rotation={[0, Math.PI, 0]}>
-        <CoreStairsAndLiftsUnit />
+        <CoreCutawayStairs />
+      </group>
+
+      {/* 2 Unit Lift Sisi Selatan: Berseberangan dengan Tangga Selatan, Menempel di Dinding (Z = -20.0) */}
+      <group position={[0, 0, 0]}>
+        <LiftUnit position={[-1.8, 0, -19.94]} rotation={[0, 0, 0]} />
+        <LiftUnit position={[1.8, 0, -19.94]} rotation={[0, 0, 0]} />
       </group>
     </group>
   );
@@ -505,69 +537,98 @@ function CutawayCoreStairsAndLifts({ level: _level }: { level: number }) {
 
 // =========================================================================
 // 5. Saintek Hub Lounge di Tengah Lantai
-// Sesuai Foto Asli (lobby-lounge-area-in-the-middle-of-every-floor.png):
-// Kisi-kisi kayu kanopi, dinding bata ekspos, meja komunal & tanaman lidah mertua
+// Sesuai Foto Asli (lobby-lounge-area-in-the-middle-of-every-floor.png & Foto Lift):
+// Berisi 2 Lift Menghadap Tangga/Void, Dinding Bata & Banner Biru, Meja & Benches, Pot Lidah Mertua
 // =========================================================================
 function SaintekHubLounge({ level }: { level: number }) {
   if (level === 1) return null; // Lantai 1 adalah area lobby & void taman
 
   return (
     <group position={[0, 0, 0]}>
-      {/* Area Lantai Lounge Bertekstur Kayu Hangat di Sisi Selasar */}
-      <mesh position={[0, 0.02, 18.2]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[11.5, 3.8]} />
+      {/* Area Lantai Lounge Bertekstur Kayu Hangat di Sisi Selasar (Foto Asli) */}
+      <mesh position={[0, 0.02, 18.5]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[11.5, 3.0]} />
         <meshStandardMaterial color="#D97706" roughness={0.5} />
       </mesh>
 
-      {/* Dinding Fitur Bata Merah Terakota (Foto Asli) */}
-      <mesh position={[0, 1.2, 20.0]} castShadow>
-        <boxGeometry args={[11.2, 2.2, 0.2]} />
+      {/* Dinding Belakang Lounge (Z = 20.0) - Tepat di Bawah Bubble Teks Lounge */}
+      {/* A. Sisi Kiri: Dinding Bata Merah & Jendela Bar (Foto Asli) */}
+      <mesh position={[-4.2, 1.2, 20.0]} castShadow>
+        <boxGeometry args={[2.8, 2.2, 0.2]} />
         <meshStandardMaterial color={FST_COLORS.roofTile} roughness={0.8} />
       </mesh>
+      <mesh position={[-4.2, 1.5, 19.98]}>
+        <boxGeometry args={[2.4, 0.9, 0.05]} />
+        <meshStandardMaterial color="#0284C7" transparent opacity={0.6} roughness={0.1} />
+      </mesh>
+      <mesh position={[-4.2, 0.9, 19.6]} castShadow>
+        <boxGeometry args={[2.6, 0.08, 0.55]} />
+        <meshStandardMaterial color="#F8FAFC" roughness={0.4} />
+      </mesh>
 
-      {/* Kisi-kisi Balok Kayu Plafon (Wooden Slat Pergola Trellis - Foto Asli) */}
-      {[0.4, 0.9, 1.4, 1.9, 2.4].map((z, i) => (
-        <mesh key={i} position={[0, 2.4, 17.2 + z]}>
-          <boxGeometry args={[10.5, 0.12, 0.18]} />
+      {/* B. Sisi Tengah: KEDUA LIFT TERTEMPEL DI DINDING DI BAWAH BUBBLE LOUNGE (Foto Asli) */}
+      {/* Menghadap koridor/tangga (arah -Z) */}
+      <LiftUnit position={[-1.8, 0, 19.94]} rotation={[0, Math.PI, 0]} />
+      <LiftUnit position={[1.8, 0, 19.94]} rotation={[0, Math.PI, 0]} />
+
+      {/* Dinding Biru Banner Visi "Innovation, Green, Humanity" di Antara Kedua Lift (Foto Asli) */}
+      <mesh position={[0, 1.2, 19.98]}>
+        <boxGeometry args={[1.7, 2.1, 0.04]} />
+        <meshStandardMaterial color="#1E40AF" roughness={0.5} />
+      </mesh>
+
+      {/* C. Sisi Kanan: Papan Foto Tematik Berbingkai Bata (Foto Asli) */}
+      <mesh position={[4.2, 1.2, 20.0]} castShadow>
+        <boxGeometry args={[2.8, 2.2, 0.2]} />
+        <meshStandardMaterial color={FST_COLORS.roofTile} roughness={0.8} />
+      </mesh>
+      <mesh position={[4.2, 1.25, 19.98]}>
+        <boxGeometry args={[2.2, 1.6, 0.04]} />
+        <meshStandardMaterial color="#FBBF24" roughness={0.6} />
+      </mesh>
+
+      {/* Kisi-kisi Balok Kayu Plafon Sisi Kiri (Wooden Slat Pergola Trellis - Foto Asli) */}
+      {[-4.8, -4.3, -3.8, -3.3, -2.8].map((x, i) => (
+        <mesh key={i} position={[x, 2.4, 18.5]}>
+          <boxGeometry args={[0.12, 0.16, 2.8]} />
           <meshStandardMaterial color="#B45309" roughness={0.5} />
         </mesh>
       ))}
 
-      {/* Meja Komunal & Bangku Kayu Belajar Mahasiswa (Foto Asli) */}
-      {[-3.0, 3.0].map((x, i) => (
-        <group key={i} position={[x, 0, 18.4]}>
+      {/* Meja Komunal & Bangku Kayu Mahasiswa di Depan Lift (Foto Asli) */}
+      {[-1.8, 1.8].map((x, i) => (
+        <group key={i} position={[x, 0, 18.3]}>
           <mesh position={[0, 0.45, 0]} castShadow>
-            <boxGeometry args={[2.2, 0.1, 1.1]} />
+            <boxGeometry args={[1.8, 0.08, 0.85]} />
             <meshStandardMaterial color="#78350F" roughness={0.6} />
           </mesh>
-          {/* Bangku Kiri & Kanan */}
-          <mesh position={[0, 0.25, -0.75]} castShadow>
-            <boxGeometry args={[2.0, 0.08, 0.35]} />
+          <mesh position={[0, 0.25, -0.55]} castShadow>
+            <boxGeometry args={[1.6, 0.06, 0.28]} />
             <meshStandardMaterial color="#451A03" roughness={0.6} />
           </mesh>
-          <mesh position={[0, 0.25, 0.75]} castShadow>
-            <boxGeometry args={[2.0, 0.08, 0.35]} />
+          <mesh position={[0, 0.25, 0.55]} castShadow>
+            <boxGeometry args={[1.6, 0.06, 0.28]} />
             <meshStandardMaterial color="#451A03" roughness={0.6} />
           </mesh>
         </group>
       ))}
 
-      {/* Pot Semen dengan Tanaman Sansevieria (Lidah Mertua - Foto Asli) */}
-      {[-5.0, 0, 5.0].map((x, i) => (
-        <group key={i} position={[x, 0, 16.8]}>
+      {/* Pot Semen dengan Tanaman Sansevieria / Lidah Mertua (Foto Asli) */}
+      {[-3.6, 0, 3.6].map((x, i) => (
+        <group key={i} position={[x, 0, 17.2]}>
           <mesh position={[0, 0.2, 0]} castShadow>
-            <boxGeometry args={[1.5, 0.4, 0.35]} />
+            <boxGeometry args={[1.5, 0.38, 0.35]} />
             <meshStandardMaterial color="#94A3B8" roughness={0.7} />
           </mesh>
-          <mesh position={[0, 0.65, 0]}>
-            <boxGeometry args={[1.3, 0.6, 0.25]} />
+          <mesh position={[0, 0.62, 0]}>
+            <boxGeometry args={[1.3, 0.55, 0.22]} />
             <meshStandardMaterial color="#15803D" roughness={0.4} />
           </mesh>
         </group>
       ))}
 
-      {/* Label 3D Lounge */}
-      <Html position={[0, 2.8, 18.2]} center distanceFactor={42}>
+      {/* Label 3D Lounge (Mengambang Tepat di Atas Area Lounge & Kedua Lift) */}
+      <Html position={[0, 2.7, 18.5]} center distanceFactor={42}>
         <div className="pointer-events-none px-2.5 py-1 rounded-full bg-amber-600/90 backdrop-blur-md text-white text-[11px] font-black shadow-lg border border-amber-400/80 flex items-center gap-1.5 whitespace-nowrap">
           <Sparkles className="w-3 h-3 text-amber-200" />
           <span>Lounge</span>
