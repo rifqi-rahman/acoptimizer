@@ -569,10 +569,16 @@ function WoodenBarStool({ position }: { position: [number, number, number] }) {
 }
 
 // Meja Belajar Komunal & Bangku Rangka Hitam (Sesuai Foto Asli Saintek Hub)
-function CommunalTableSet({ position }: { position: [number, number, number] }) {
+function CommunalTableSet({
+  position,
+  rotation,
+}: {
+  position: [number, number, number];
+  rotation?: [number, number, number];
+}) {
   const [x, y, z] = position;
   return (
-    <group position={[x, y, z]}>
+    <group position={[x, y, z]} rotation={rotation}>
       {/* Daun Meja Kayu Hangat */}
       <mesh position={[0, 0.62, 0]} castShadow>
         <boxGeometry args={[2.2, 0.07, 0.95]} />
@@ -822,6 +828,11 @@ function InteractiveRoomBox({
 }) {
   const wallH = 1.15;
   const isPilot = room.hasDevice;
+  const isFloor1Corridor =
+    room.level === 1 &&
+    (room.slotId.includes("-U") || room.slotId.includes("-S") || room.slotId.includes("-B"));
+  const isFloor1Lobby =
+    room.level === 1 && (room.slotId === "1-CU" || room.slotId === "1-CS");
 
   return (
     <group position={[room.center[0], 0, -room.center[1]]}>
@@ -849,18 +860,22 @@ function InteractiveRoomBox({
         />
       </mesh>
 
-      {/* Dinding Partisi Pembatas Ruang (Tembok Putih Halus) */}
-      <mesh position={[-room.size[0] * 0.47, wallH / 2, 0]} castShadow receiveShadow>
-        <boxGeometry args={[0.18, wallH, room.size[1] * 0.92]} />
-        <meshStandardMaterial color="#FFFFFF" roughness={0.8} />
-      </mesh>
-      <mesh position={[room.size[0] * 0.47, wallH / 2, 0]} castShadow receiveShadow>
-        <boxGeometry args={[0.18, wallH, room.size[1] * 0.92]} />
-        <meshStandardMaterial color="#FFFFFF" roughness={0.8} />
-      </mesh>
+      {/* Dinding Partisi Pembatas Ruang (Tembok Putih Halus) - Ditiadakan pada lorong terbuka Lantai 1 */}
+      {!isFloor1Corridor && !isFloor1Lobby && (
+        <>
+          <mesh position={[-room.size[0] * 0.47, wallH / 2, 0]} castShadow receiveShadow>
+            <boxGeometry args={[0.18, wallH, room.size[1] * 0.92]} />
+            <meshStandardMaterial color="#FFFFFF" roughness={0.8} />
+          </mesh>
+          <mesh position={[room.size[0] * 0.47, wallH / 2, 0]} castShadow receiveShadow>
+            <boxGeometry args={[0.18, wallH, room.size[1] * 0.92]} />
+            <meshStandardMaterial color="#FFFFFF" roughness={0.8} />
+          </mesh>
+        </>
+      )}
 
-      {/* Furnitur Simbolis di Dalam Ruang Kelas / Lab */}
-      {room.kind === "classroom" && (
+      {/* Furnitur Simbolis di Dalam Ruang Kelas / Lab (Lantai 2 - 7) */}
+      {room.kind === "classroom" && room.level > 1 && (
         <group position={[0, 0, 0]}>
           {/* Meja Dosen & Podium */}
           <mesh position={[0, 0.35, -room.size[1] * 0.28]} castShadow>
@@ -871,6 +886,28 @@ function InteractiveRoomBox({
           <mesh position={[0, 0.28, room.size[1] * 0.15]} castShadow>
             <boxGeometry args={[room.size[0] * 0.65, 0.25, 1.2]} />
             <meshStandardMaterial color="#94A3B8" roughness={0.7} />
+          </mesh>
+        </group>
+      )}
+
+      {/* Lantai 1 Bagian Lorong (Sayap Utara, Selatan, & Barat): Pasangan Meja Memanjang & Kursi Panjang Komunal Berjarak */}
+      {isFloor1Corridor && (
+        <CommunalTableSet
+          position={[0, 0, 0]}
+          rotation={room.slotId.includes("-B") ? [0, Math.PI / 2, 0] : [0, 0, 0]}
+        />
+      )}
+
+      {/* Lantai 1 Meja Resepsionis Lobby Sarjana & Pascasarjana */}
+      {isFloor1Lobby && (
+        <group position={[0, 0, 0]}>
+          <mesh position={[0, 0.5, 0]} castShadow>
+            <boxGeometry args={[3.8, 1.0, 0.9]} />
+            <meshStandardMaterial color="#1E293B" roughness={0.4} />
+          </mesh>
+          <mesh position={[0, 1.02, 0]}>
+            <boxGeometry args={[4.0, 0.06, 1.0]} />
+            <meshStandardMaterial color="#F8FAFC" roughness={0.2} />
           </mesh>
         </group>
       )}
@@ -907,7 +944,7 @@ function InteractiveRoomBox({
 
       {/* Label 3D Teks Nama Ruang (Kecil, Rapi, & Selalu Terbaca) */}
       {!isPilot && (
-        <Html position={[0, 0.8, 0]} center distanceFactor={50}>
+        <Html position={[0, 1.15, 0]} center distanceFactor={50}>
           <div
             onClick={(e) => {
               e.stopPropagation();
