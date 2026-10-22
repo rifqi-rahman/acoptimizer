@@ -942,8 +942,8 @@ function InteractiveRoomBox({
         </group>
       )}
 
-      {/* Label 3D Teks Nama Ruang (Kecil, Rapi, & Selalu Terbaca) */}
-      {!isPilot && (
+      {/* Label 3D Teks Nama Ruang (Kecil, Rapi, & Selalu Terbaca) - Dihapus pada lorong terbuka Lantai 1 */}
+      {!isPilot && !isFloor1Corridor && !isFloor1Lobby && (
         <Html position={[0, 1.15, 0]} center distanceFactor={50}>
           <div
             onClick={(e) => {
