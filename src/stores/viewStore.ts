@@ -27,6 +27,7 @@ interface ViewStoreState {
   hoveredSlotId: string | null;
   resetCameraTrigger: number;
   activeModal: "settings" | "account" | "automations" | null;
+  automationsTab: "rules" | "logs" | "alerts";
 
   // Actions
   setMode: (mode: ViewMode) => void;
@@ -46,6 +47,7 @@ interface ViewStoreState {
   toggleSidebar: () => void;
   setSidebarExpanded: (expanded: boolean) => void;
   openModal: (modal: "settings" | "account" | "automations" | null) => void;
+  setAutomationsTab: (tab: "rules" | "logs" | "alerts") => void;
 }
 
 const DEFAULT_FILTERS: ObjectVisibilityFilters = {
@@ -72,6 +74,7 @@ export const useViewStore = create<ViewStoreState>((set) => ({
   hoveredSlotId: null,
   resetCameraTrigger: 0,
   activeModal: null,
+  automationsTab: "rules",
 
   setMode: (mode) => set({ mode }),
   setCameraAzimuth: (cameraAzimuth) => set({ cameraAzimuth }),
@@ -109,4 +112,5 @@ export const useViewStore = create<ViewStoreState>((set) => ({
     set((state) => ({ isSidebarExpanded: !state.isSidebarExpanded })),
   setSidebarExpanded: (isSidebarExpanded) => set({ isSidebarExpanded }),
   openModal: (activeModal) => set({ activeModal }),
+  setAutomationsTab: (automationsTab) => set({ automationsTab }),
 }));

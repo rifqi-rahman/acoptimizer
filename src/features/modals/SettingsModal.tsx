@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Check, Server, Settings, Sliders, X, Zap } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Check, Database, Server, Settings, Sliders, X, Zap } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 import { useRoomStore } from "../../stores/roomStore";
 import { useViewStore } from "../../stores/viewStore";
@@ -8,26 +8,45 @@ export const SettingsModal: React.FC = React.memo(function SettingsModal() {
   const { activeModal, openModal } = useViewStore(
     useShallow((s) => ({ activeModal: s.activeModal, openModal: s.openModal }))
   );
-  const { connection, brokerUrl, setBrokerUrl } = useRoomStore(
+  const { connection, backendConnected, settings, saveSettings } = useRoomStore(
     useShallow((s) => ({
       connection: s.connection,
-      brokerUrl: s.brokerUrl,
-      setBrokerUrl: s.setBrokerUrl,
+      backendConnected: s.backendConnected,
+      settings: s.settings,
+      saveSettings: s.saveSettings,
     }))
   );
 
-  const [normalTemp, setNormalTemp] = useState(22);
-  const [ecoTemp, setEcoTemp] = useState(27);
-  const [idleDelay, setIdleDelay] = useState(15);
-  const [autoOffDelay, setAutoOffDelay] = useState(120);
-  const [localBrokerUrl, setLocalBrokerUrl] = useState(brokerUrl);
-  const [tariff, setTariff] = useState(1444);
+  const [normalTemp, setNormalTemp] = useState(settings.normalTemp);
+  const [ecoTemp, setEcoTemp] = useState(settings.ecoTemp);
+  const [idleDelay, setIdleDelay] = useState(settings.idleDelayMin);
+  const [autoOffDelay, setAutoOffDelay] = useState(settings.autoOffDelayMin);
+  const [localBrokerUrl, setLocalBrokerUrl] = useState(settings.brokerUrl);
+  const [tariff, setTariff] = useState(settings.tariffPerKwh);
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (activeModal === "settings") {
+      setNormalTemp(settings.normalTemp);
+      setEcoTemp(settings.ecoTemp);
+      setIdleDelay(settings.idleDelayMin);
+      setAutoOffDelay(settings.autoOffDelayMin);
+      setLocalBrokerUrl(settings.brokerUrl);
+      setTariff(settings.tariffPerKwh);
+    }
+  }, [activeModal, settings]);
 
   if (activeModal !== "settings") return null;
 
-  const handleSave = () => {
-    setBrokerUrl(localBrokerUrl.trim());
+  const handleSave = async () => {
+    await saveSettings({
+      normalTemp,
+      ecoTemp,
+      idleDelayMin: idleDelay,
+      autoOffDelayMin: autoOffDelay,
+      brokerUrl: localBrokerUrl.trim(),
+      tariffPerKwh: tariff,
+    });
     setSaved(true);
     setTimeout(() => {
       setSaved(false);
@@ -49,14 +68,14 @@ export const SettingsModal: React.FC = React.memo(function SettingsModal() {
                 Pengaturan Sistem Acoptimizer
               </h3>
               <p className="text-xs text-slate-500">
-                Konfigurasi Parameter Otomasi & Koneksi MQTT IoT
+                Konfigurasi Parameter Otomasi Backend &amp; Koneksi MQTT IoT
               </p>
             </div>
           </div>
 
           <button
             onClick={() => openModal(null)}
-            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition"
+            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -88,7 +107,7 @@ export const SettingsModal: React.FC = React.memo(function SettingsModal() {
                   <span className="font-bold text-slate-500">°C</span>
                 </div>
                 <span className="text-[11px] text-slate-400 block">
-                  Standar kenyamanan ruang kuliah & kantor FST.
+                  Standar kenyamanan ruang kuliah &amp; kantor FST.
                 </span>
               </div>
 
@@ -118,7 +137,7 @@ export const SettingsModal: React.FC = React.memo(function SettingsModal() {
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-slate-800 font-bold text-sm">
               <Sliders className="w-4 h-4 text-purple-600" />
-              <span>Durasi & Waktu Tunggu (Timer)</span>
+              <span>Durasi &amp; Waktu Tunggu (Timer)</span>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -152,28 +171,40 @@ export const SettingsModal: React.FC = React.memo(function SettingsModal() {
                   className="w-24 px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-slate-800 font-bold"
                 />
                 <span className="text-[11px] text-slate-400 block">
-                  AC dimatikan total jika kosong $\ge$ 2 jam.
+                  AC dimatikan total jika kosong ≥ 2 jam.
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Section: Koneksi MQTT Broker */}
+          {/* Section: Koneksi MQTT Broker & Backend API */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-slate-800 font-bold text-sm">
                 <Server className="w-4 h-4 text-emerald-600" />
-                <span>Koneksi Broker MQTT (IoT ESP32)</span>
+                <span>Koneksi Broker MQTT &amp; Backend Service</span>
               </div>
-              <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                {connection}
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span
+                  className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 ${
+                    backendConnected
+                      ? "text-blue-700 bg-blue-50"
+                      : "text-amber-700 bg-amber-50"
+                  }`}
+                >
+                  <Database className="w-3 h-3" />
+                  Backend: {backendConnected ? "Aktif" : "Standby"}
+                </span>
+                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  MQTT: {connection}
+                </span>
+              </div>
             </div>
 
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-2">
               <label className="font-semibold text-slate-700 block">
-                WebSocket Broker Endpoint
+                WebSocket Broker Endpoint (Browser &amp; Backend Bridge)
               </label>
               <input
                 type="text"
@@ -182,7 +213,7 @@ export const SettingsModal: React.FC = React.memo(function SettingsModal() {
                 className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-800 font-mono text-xs"
               />
               <span className="text-[11px] text-slate-400 block">
-                Format topik: <code>acoptimizer/fst-uin/v1/6-U1/telemetry</code>
+                Format topik: <code>acoptimizer/fst-uin/v1/6-U1/telemetry|status|cmd|ack</code>
               </span>
             </div>
           </div>
@@ -199,7 +230,7 @@ export const SettingsModal: React.FC = React.memo(function SettingsModal() {
                   Tarif per kWh (Rupiah)
                 </span>
                 <span className="text-[11px] text-slate-400">
-                  Digunakan untuk kalkulasi estimasi rupiah penghematan energi.
+                  Digunakan untuk kalkulasi estimasi beban &amp; penghematan energi R.601.
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -219,18 +250,18 @@ export const SettingsModal: React.FC = React.memo(function SettingsModal() {
         <div className="p-5 border-t border-slate-100 flex items-center justify-end gap-3 bg-slate-50/50">
           <button
             onClick={() => openModal(null)}
-            className="px-4 py-2 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition"
+            className="px-4 py-2 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition cursor-pointer"
           >
             Batal
           </button>
           <button
-            onClick={handleSave}
-            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm active:scale-95"
+            onClick={() => void handleSave()}
+            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm active:scale-95 cursor-pointer"
           >
             {saved ? (
               <>
                 <Check className="w-4 h-4" />
-                <span>Tersimpan!</span>
+                <span>Tersimpan di Backend!</span>
               </>
             ) : (
               <span>Simpan Konfigurasi</span>

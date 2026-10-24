@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { generateEntireBuilding } from "./building/generator";
+import { useBackendSync } from "./data/useBackendSync";
 import { useMqttLive } from "./data/useMqttLive";
 import { CompassHUD } from "./features/hud/CompassHUD";
 import { FloorRail } from "./features/hud/FloorRail";
@@ -37,7 +38,8 @@ export function App() {
     initializeRooms(allSlots);
   }, [floors, initializeRooms]);
 
-  // Aktifkan koneksi real-time MQTT ke perangkat IoT ESP32 (Ruang R.601 / 6-U1)
+  // Aktifkan sinkronisasi Backend API (/api/state) & koneksi real-time MQTT ke perangkat IoT ESP32 (Ruang R.601 / 6-U1)
+  useBackendSync(true);
   useMqttLive(true);
 
   // Ambil data lantai & ruangan terpilih

@@ -1,15 +1,18 @@
 import React from "react";
 import {
   Activity,
+  AlertTriangle,
   ArrowLeft,
   Building2,
   CheckCircle2,
   ChevronRight,
   Clock,
   Cpu,
+  Database,
   Flame,
   Info,
   Minus,
+  Play,
   Plus,
   Power,
   Radio,
@@ -37,6 +40,17 @@ const FLOOR_METADATA: Record<number, { title: string; subtitle: string }> = {
   1: { title: "Lobby Utama & Atrium", subtitle: "Lobby Sarjana & Pascasarjana, Void Taman & Musolla" },
 };
 
+const SCENARIO_BUTTONS: { rule: number; shortLabel: string; desc: string }[] = [
+  { rule: 1, shortLabel: "K#1 Normal", desc: "Terpakai (22°C)" },
+  { rule: 2, shortLabel: "K#2 Transisi", desc: "Kosong <15m" },
+  { rule: 3, shortLabel: "K#3 Eco 27°", desc: "Kosong ≥15m" },
+  { rule: 4, shortLabel: "K#4 Auto-Off", desc: "Kosong ≥2 Jam" },
+  { rule: 5, shortLabel: "K#5 Malam Off", desc: "Malam Kosong" },
+  { rule: 6, shortLabel: "K#6 Lembur", desc: "Malam Isi" },
+  { rule: 7, shortLabel: "K#7 Panas Off", desc: "Kosong >29°C" },
+  { rule: 8, shortLabel: "K#8 Anomali!", desc: "Isi & >29°C" },
+];
+
 interface SidePanelProps {
   room: RoomGeometry | null;
   currentFloor: FloorModel;
@@ -48,18 +62,43 @@ export const SidePanel: React.FC<SidePanelProps> = React.memo(function SidePanel
   currentFloor,
   floors,
 }) {
-  const { mode, selectRoom, selectFloor, resetToBuilding } = useViewStore(
-    useShallow((s) => ({
-      mode: s.mode,
-      selectRoom: s.selectRoom,
-      selectFloor: s.selectFloor,
-      resetToBuilding: s.resetToBuilding,
-    }))
-  );
-  const { rooms: liveRooms, sendCommand, lastCommandFeedback, connection } = useRoomStore(
+  const { mode, selectRoom, selectFloor, resetToBuilding, openModal, setAutomationsTab } =
+    useViewStore(
+      useShallow((s) => ({
+        mode: s.mode,
+        selectRoom: s.selectRoom,
+        selectFloor: s.selectFloor,
+        resetToBuilding: s.resetToBuilding,
+        openModal: s.openModal,
+        setAutomationsTab: s.setAutomationsTab,
+      }))
+    );
+
+  const {
+    rooms: liveRooms,
+    sendCommand,
+    triggerScenario,
+    toggleVirtualEsp32,
+    virtualEsp32Enabled,
+    backendConnected,
+    history,
+    commands,
+    alerts,
+    settings,
+    lastCommandFeedback,
+    connection,
+  } = useRoomStore(
     useShallow((s) => ({
       rooms: s.rooms,
       sendCommand: s.sendCommand,
+      triggerScenario: s.triggerScenario,
+      toggleVirtualEsp32: s.toggleVirtualEsp32,
+      virtualEsp32Enabled: s.virtualEsp32Enabled,
+      backendConnected: s.backendConnected,
+      history: s.history,
+      commands: s.commands,
+      alerts: s.alerts,
+      settings: s.settings,
       lastCommandFeedback: s.lastCommandFeedback,
       connection: s.connection,
     }))
@@ -67,6 +106,7 @@ export const SidePanel: React.FC<SidePanelProps> = React.memo(function SidePanel
 
   // Ruangan pilot R.601 live data
   const pilotLive = liveRooms["6-U1"];
+  const activeAlerts = alerts.filter((a) => !a.resolvedAt && !a.acknowledged);
 
   // =========================================================================
   // 1. TAMPILAN DETAIL RUANGAN (ROOM DETAIL)
@@ -76,7 +116,7 @@ export const SidePanel: React.FC<SidePanelProps> = React.memo(function SidePanel
     const hasDevice = room.hasDevice || (live?.hasDevice ?? false);
 
     const currentTargetTemp =
-      live?.targetTemp ?? (live?.acMode === "eco" ? 27 : 22);
+      live?.targetTemp ?? (live?.acMode === "eco" ? settings.ecoTemp : settings.normalTemp);
 
     const kindLabel =
       room.kind === "stairs"
@@ -106,6 +146,34 @@ export const SidePanel: React.FC<SidePanelProps> = React.memo(function SidePanel
       lastCommandFeedback.slotId === room.slotId &&
       Date.now() - lastCommandFeedback.timestamp < 8000;
 
+    const roomHistory = history[room.slotId] ?? [];
+    const latestCmd = commands.find((c) => c.slotId === room.slotId);
+    const powerKw =
+      !live?.online || !live?.acMode || live.acMode === "off"
+        ? 0
+        : live.acMode === "eco"
+        ? 0.72
+        : 1.2;
+    const costPerHour = Math.round(powerKw * settings.tariffPerKwh);
+
+    // Hitung titik SVG sparkline untuk 20 sampel suhu terakhir
+    const recentPoints = roomHistory.slice(-20);
+    const sparklinePath = (() => {
+      if (recentPoints.length < 2) return "";
+      const minT = 18;
+      const maxT = 34;
+      const w = 220;
+      const h = 36;
+      return recentPoints
+        .map((pt, i) => {
+          const x = (i / (recentPoints.length - 1)) * w;
+          const clamped = Math.min(maxT, Math.max(minT, pt.temp));
+          const y = h - ((clamped - minT) / (maxT - minT)) * (h - 8) - 4;
+          return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
+        })
+        .join(" ");
+    })();
+
     return (
       <div className="w-full h-full flex flex-col bg-white overflow-hidden animate-in fade-in duration-200">
         {/* Header Ruangan */}
@@ -128,7 +196,11 @@ export const SidePanel: React.FC<SidePanelProps> = React.memo(function SidePanel
                       live?.online ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
                     }`}
                   />
-                  {live?.online ? "ESP32 Terhubung" : "Terdaftar IoT (Standby)"}
+                  {live?.online
+                    ? live.isDemo
+                      ? "Virtual ESP32 Aktif"
+                      : "ESP32 Terhubung"
+                    : "Terdaftar IoT (Standby)"}
                 </span>
               ) : (
                 <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">
@@ -190,15 +262,22 @@ export const SidePanel: React.FC<SidePanelProps> = React.memo(function SidePanel
                     <Activity className="w-3.5 h-3.5 text-blue-600" />
                     Status Sistem Mikrokontroler
                   </span>
-                  <span
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
-                      live?.mode === "override"
-                        ? "bg-amber-100 text-amber-800"
-                        : "bg-blue-100 text-blue-800"
-                    }`}
-                  >
-                    Mode: {live?.mode === "override" ? "Manual Web" : "Otomatis"}
-                  </span>
+                  <div className="flex items-center gap-1">
+                    {live?.rule && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">
+                        Kasus #{live.rule}
+                      </span>
+                    )}
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                        live?.mode === "override"
+                          ? "bg-amber-100 text-amber-800"
+                          : "bg-blue-100 text-blue-800"
+                      }`}
+                    >
+                      {live?.mode === "override" ? "Manual Web" : "Otomatis"}
+                    </span>
+                  </div>
                 </div>
                 <div className="text-sm font-black text-slate-800">
                   {live?.dashboardStatus ?? "Menunggu Paket Telemetri ESP32..."}
@@ -266,6 +345,59 @@ export const SidePanel: React.FC<SidePanelProps> = React.memo(function SidePanel
                 </div>
               </div>
 
+              {/* Estimasi Beban Energi & Grafik Mini Riwayat Telemetri */}
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-2.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-slate-700 flex items-center gap-1.5">
+                    <Zap className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Beban Daya AC: {powerKw.toFixed(2)} kW</span>
+                  </span>
+                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                    ~Rp {costPerHour.toLocaleString("id-ID")}/jam
+                  </span>
+                </div>
+
+                {recentPoints.length >= 2 ? (
+                  <div className="pt-1 border-t border-slate-200/60">
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 mb-1">
+                      <span>Tren Suhu Riil ({recentPoints.length} sampel terakhir)</span>
+                      <button
+                        onClick={() => {
+                          setAutomationsTab("logs");
+                          openModal("automations");
+                        }}
+                        className="text-blue-600 hover:underline font-bold cursor-pointer"
+                      >
+                        Lihat Log Lengkap
+                      </button>
+                    </div>
+                    <svg viewBox="0 0 220 36" className="w-full h-9 overflow-visible">
+                      <path
+                        d={sparklinePath}
+                        fill="none"
+                        stroke="#2563EB"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </div>
+                ) : (
+                  <div className="text-[10px] text-slate-400 pt-1 border-t border-slate-200/60 flex items-center justify-between">
+                    <span>Menunggu sampel riwayat telemetri...</span>
+                    <button
+                      onClick={() => {
+                        setAutomationsTab("logs");
+                        openModal("automations");
+                      }}
+                      className="text-blue-600 hover:underline font-bold cursor-pointer"
+                    >
+                      Buka Log
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {/* Panel Kontrol IoT Dua Arah (Web App -> ESP32 IR Transmitter) */}
               <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 text-white space-y-3.5 shadow-md">
                 <div className="flex items-center justify-between">
@@ -330,7 +462,7 @@ export const SidePanel: React.FC<SidePanelProps> = React.memo(function SidePanel
                     }`}
                   >
                     <Flame className="w-3.5 h-3.5" />
-                    <span>Normal 22°</span>
+                    <span>Normal {settings.normalTemp}°</span>
                   </button>
 
                   <button
@@ -342,7 +474,7 @@ export const SidePanel: React.FC<SidePanelProps> = React.memo(function SidePanel
                     }`}
                   >
                     <Zap className="w-3.5 h-3.5" />
-                    <span>Eco 27°</span>
+                    <span>Eco {settings.ecoTemp}°</span>
                   </button>
 
                   <button
@@ -367,6 +499,24 @@ export const SidePanel: React.FC<SidePanelProps> = React.memo(function SidePanel
                   <span>Kembalikan ke Mode Otomatis (Sensor ESP32)</span>
                 </button>
 
+                {/* Status ACK Perintah Terakhir dari Backend / ESP32 */}
+                {latestCmd && (
+                  <div className="flex items-center justify-between text-[10px] text-slate-300 pt-1 border-t border-white/10">
+                    <span className="truncate">
+                      Cmd: <strong className="text-white">{latestCmd.irAction}</strong>
+                    </span>
+                    <span
+                      className={`px-2 py-0.5 rounded-full font-bold uppercase ${
+                        latestCmd.status === "acked"
+                          ? "bg-emerald-500/30 text-emerald-200 border border-emerald-400/40"
+                          : "bg-blue-500/30 text-blue-200 border border-blue-400/40"
+                      }`}
+                    >
+                      {latestCmd.status === "acked" ? "ACK ESP32 ✓" : "Terkirim..."}
+                    </span>
+                  </div>
+                )}
+
                 {/* Feedback Pengiriman Perintah */}
                 {showFeedback && (
                   <div className="p-2 rounded-lg bg-emerald-500/20 border border-emerald-400/40 text-[11px] text-emerald-200 flex items-center gap-1.5">
@@ -376,17 +526,70 @@ export const SidePanel: React.FC<SidePanelProps> = React.memo(function SidePanel
                 )}
               </div>
 
+              {/* Panel Uji Skenario 8 Kasus & Simulator Virtual ESP32 (Tersambung ke Backend API) */}
+              <div className="p-3.5 rounded-2xl bg-indigo-50/60 border border-indigo-200/80 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black text-indigo-950 flex items-center gap-1.5">
+                    <Cpu className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Simulator &amp; Uji 8 Kasus (Backend)</span>
+                  </span>
+                  <button
+                    onClick={() => void toggleVirtualEsp32(!virtualEsp32Enabled)}
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition cursor-pointer flex items-center gap-1 ${
+                      virtualEsp32Enabled
+                        ? "bg-emerald-600 text-white shadow-xs"
+                        : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100"
+                    }`}
+                  >
+                    <Play className="w-2.5 h-2.5" />
+                    <span>{virtualEsp32Enabled ? "Loop Aktif" : "Aktifkan Loop"}</span>
+                  </button>
+                </div>
+
+                <p className="text-[10px] text-slate-600 leading-relaxed">
+                  Klik salah satu skenario untuk mengirim paket telemetri &amp; menguji perubahan warna 3D, aksi IR, serta alarm sistem pada <strong>{room.displayName.replace(" (Pilot AC)", "")}</strong>:
+                </p>
+
+                <div className="grid grid-cols-2 gap-1.5">
+                  {SCENARIO_BUTTONS.map((sc) => {
+                    const isCurrent = live?.online && live?.rule === sc.rule;
+                    return (
+                      <button
+                        key={sc.rule}
+                        onClick={() => void triggerScenario(room.slotId, sc.rule)}
+                        className={`p-2 rounded-xl border text-left transition cursor-pointer ${
+                          isCurrent
+                            ? "bg-indigo-600 border-indigo-600 text-white shadow-xs"
+                            : "bg-white hover:bg-indigo-50 border-indigo-100 text-slate-700"
+                        }`}
+                      >
+                        <div className="text-[11px] font-bold leading-tight">
+                          {sc.shortLabel}
+                        </div>
+                        <div
+                          className={`text-[9px] truncate ${
+                            isCurrent ? "text-indigo-100" : "text-slate-400"
+                          }`}
+                        >
+                          {sc.desc}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Info Konfigurasi Hardware ESP32 untuk Ruang Ini */}
               <div className="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-100 text-[11px] text-slate-600 space-y-1">
                 <div className="font-bold text-blue-900 flex items-center gap-1.5">
-                  <Cpu className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Identitas Perangkat di Kode Arduino:</span>
+                  <Database className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Identitas Perangkat &amp; Topik MQTT:</span>
                 </div>
                 <p className="font-mono text-[10px] text-slate-700">
                   ROOM_SLOT_ID: &quot;{room.slotId}&quot; ({room.displayName.replace(" (Pilot AC)", "")})
                 </p>
                 <p className="font-mono text-[10px] text-slate-500 truncate">
-                  Topik: acoptimizer/fst-uin/v1/{room.slotId}/telemetry
+                  Topik: acoptimizer/fst-uin/v1/{room.slotId}/telemetry|cmd|ack
                 </p>
               </div>
             </>
@@ -417,14 +620,24 @@ export const SidePanel: React.FC<SidePanelProps> = React.memo(function SidePanel
       <div className="w-full h-full flex flex-col bg-white overflow-hidden animate-in fade-in duration-200">
         {/* Header Panel: Gedung FST Dashboard */}
         <div className="p-5 border-b border-slate-100 flex-shrink-0">
-          <div className="flex items-center gap-2 mb-1.5">
+          <div className="flex items-center flex-wrap gap-1.5 mb-1.5">
             <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
               <Building2 className="w-3 h-3 text-blue-600" />
               Digital Twin FST
             </span>
             <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              MQTT {connection === "live" ? "Terhubung" : connection}
+              MQTT {connection === "live" ? "Live" : connection}
+            </span>
+            <span
+              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                backendConnected
+                  ? "text-indigo-700 bg-indigo-50"
+                  : "text-slate-500 bg-slate-100"
+              }`}
+            >
+              <Database className="w-2.5 h-2.5" />
+              {backendConnected ? "Backend Ready" : "Backend Sync"}
             </span>
           </div>
           <h3 className="text-xl font-black text-slate-800 tracking-tight">
@@ -437,6 +650,32 @@ export const SidePanel: React.FC<SidePanelProps> = React.memo(function SidePanel
 
         {/* Konten Dashboard Gedung (Scrollable) */}
         <div className="p-5 flex-1 overflow-y-auto space-y-5">
+          {/* Banner Alert Aktif (Jika Ada Peringatan Anomali / Lembur / Pemborosan) */}
+          {activeAlerts.length > 0 && (
+            <button
+              onClick={() => {
+                setAutomationsTab("alerts");
+                openModal("automations");
+              }}
+              className="w-full p-3.5 rounded-2xl bg-red-50 hover:bg-red-100/80 border border-red-200 text-left transition flex items-start gap-2.5 cursor-pointer"
+            >
+              <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5 animate-bounce" />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black text-red-800 uppercase">
+                    {activeAlerts.length} Peringatan Sistem Aktif
+                  </span>
+                  <span className="text-[10px] font-bold text-red-600 underline">
+                    Detail
+                  </span>
+                </div>
+                <p className="text-[11px] text-red-700 truncate mt-0.5">
+                  {activeAlerts[0].message}
+                </p>
+              </div>
+            </button>
+          )}
+
           {/* Ruang Pilot Uji Coba Highlight (Data Riil R.601) */}
           <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-50 via-indigo-50/40 to-white border border-blue-200/80 space-y-3 shadow-sm">
             <div className="flex items-center justify-between">
@@ -456,7 +695,11 @@ export const SidePanel: React.FC<SidePanelProps> = React.memo(function SidePanel
                     pilotLive?.online ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
                   }`}
                 />
-                {pilotLive?.online ? "ESP32 Online" : "Menunggu ESP32"}
+                {pilotLive?.online
+                  ? pilotLive.isDemo
+                    ? "Virtual ESP32"
+                    : "ESP32 Online"
+                  : "Menunggu ESP32"}
               </span>
             </div>
 
@@ -473,16 +716,28 @@ export const SidePanel: React.FC<SidePanelProps> = React.memo(function SidePanel
               </p>
             </div>
 
-            <button
-              onClick={() => {
-                selectFloor(6);
-                selectRoom("6-U1");
-              }}
-              className="w-full py-2.5 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm shadow-blue-500/25 active:scale-95 cursor-pointer"
-            >
-              <span>Buka Kontrol & Monitor R.601</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  selectFloor(6);
+                  selectRoom("6-U1");
+                }}
+                className="flex-1 py-2.5 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm shadow-blue-500/25 active:scale-95 cursor-pointer"
+              >
+                <span>Kontrol &amp; Monitor R.601</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+
+              {!pilotLive?.online && (
+                <button
+                  onClick={() => void toggleVirtualEsp32(true)}
+                  className="py-2.5 px-3 bg-indigo-100 hover:bg-indigo-200 text-indigo-800 rounded-xl text-xs font-bold transition cursor-pointer"
+                  title="Nyalakan Simulator Virtual ESP32 R.601 di Backend"
+                >
+                  Simulasi
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Ringkasan Status IoT Gedung */}
@@ -630,7 +885,7 @@ export const SidePanel: React.FC<SidePanelProps> = React.memo(function SidePanel
               onClick={() => selectRoom("6-U1")}
               className="w-full py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
             >
-              <span>Kontrol & Pantau R.601</span>
+              <span>Kontrol &amp; Pantau R.601</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>

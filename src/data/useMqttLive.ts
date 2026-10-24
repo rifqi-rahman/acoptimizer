@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import mqtt from "mqtt";
 import { useShallow } from "zustand/react/shallow";
 import {
+  AckPayload,
   CommandPayload,
   formatTopic,
   parseTopic,
@@ -15,14 +16,16 @@ import { registerMqttCommandPublisher, useRoomStore } from "../stores/roomStore"
  * langsung dengan mikrokontroler ESP32 (misal di Ruang Pilot R.601 / Slot "6-U1").
  */
 export function useMqttLive(enabled = true) {
-  const { brokerUrl, setConnection, updateTelemetry, setDeviceOnline } = useRoomStore(
-    useShallow((s) => ({
-      brokerUrl: s.brokerUrl,
-      setConnection: s.setConnection,
-      updateTelemetry: s.updateTelemetry,
-      setDeviceOnline: s.setDeviceOnline,
-    }))
-  );
+  const { brokerUrl, setConnection, updateTelemetry, handleCommandAck, setDeviceOnline } =
+    useRoomStore(
+      useShallow((s) => ({
+        brokerUrl: s.brokerUrl,
+        setConnection: s.setConnection,
+        updateTelemetry: s.updateTelemetry,
+        handleCommandAck: s.handleCommandAck,
+        setDeviceOnline: s.setDeviceOnline,
+      }))
+    );
 
   useEffect(() => {
     if (!enabled || !brokerUrl) return;
@@ -71,6 +74,30 @@ export function useMqttLive(enabled = true) {
       if (kind === "status") {
         if (rawStr === "online" || rawStr === "offline") {
           setDeviceOnline(slot, rawStr === "online");
+        }
+        return;
+      }
+
+      if (kind === "ack") {
+        try {
+          const json = JSON.parse(rawStr);
+          const validated = AckPayload.safeParse(json);
+          if (validated.success) {
+            handleCommandAck(slot, validated.data);
+          } else if (json && typeof json === "object") {
+            handleCommandAck(slot, {
+              cmd_id: String(json.cmd_id ?? ""),
+              ok: json.ok !== false,
+              ac_mode:
+                json.ac_mode === "eco" || json.ac_mode === "off"
+                  ? json.ac_mode
+                  : "normal",
+              target_temp: json.target_temp ? Number(json.target_temp) : undefined,
+              ir_action: json.ir_action ? String(json.ir_action) : undefined,
+            });
+          }
+        } catch {
+          // Abaikan payload non-JSON
         }
         return;
       }
@@ -124,6 +151,6 @@ export function useMqttLive(enabled = true) {
       registerMqttCommandPublisher(null);
       client.end(true);
     };
-  }, [enabled, brokerUrl, setConnection, updateTelemetry, setDeviceOnline]);
+  }, [enabled, brokerUrl, setConnection, updateTelemetry, handleCommandAck, setDeviceOnline]);
 }
 

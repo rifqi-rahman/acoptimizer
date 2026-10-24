@@ -30,12 +30,13 @@
 #define DHTTYPE DHT22
 #define MMWAVE_PIN 13      // Pin OUT Sensor mmWave HLK-LD2410
 #define IR_PIN 4           // Pin S (Signal) KY-005 IR Transmitter
-#define LED_GREEN 16       // Indikator Kehadiran (HIGH = Ada Orang)
-#define LED_RED 17         // Indikator Transmisi IR (Berkedip saat kirim IR)
+#define LED_GREEN 16       // Indikator Kehadiran / AC Aktif (Pin RX2 / GPIO 16)
+#define LED_RED 17         // Indikator Transmisi IR / AC OFF (Pin TX2 / GPIO 17)
+#define LED_BOARD 2        // LED Biru Bawaan Board DOIT ESP32 DEVKIT V1 (GPIO 2)
 
 // --- 3. KREDENSIAL WIFI & BROKER MQTT ---
-const char* ssid       = "Teman Kenangan";
-const char* password   = "KenanganManis#21";
+const char* ssid       = "RumahkuSurgaku_plus";
+const char* password   = "rezeki2M2025";
 const char* mqttServer = "broker.emqx.io";
 const int   mqttPort   = 1883; // TCP non-TLS agar CPU ESP32 tetap dingin
 
@@ -51,6 +52,7 @@ unsigned long lastPresenceTime    = 0;
 unsigned long lastDhtReadTime     = 0;
 unsigned long lastTelemetryTime   = 0;
 unsigned long lastMqttRetryTime   = 0;
+unsigned long lastWifiRetryTime   = 0;
 unsigned long overrideUntilMillis = 0;
 
 const unsigned long DHT_INTERVAL_MS       = 5000; // Baca DHT22 tiap 5 detik (mencegah sensor & ESP32 panas)
@@ -72,8 +74,30 @@ String dashboardStatus   = "Inisialisasi Sistem...";
 bool   forceImmediatePub = true;
 
 // ============================================================================
-// FUNGSI EKSEKUSI TRANSMISI IR (Anti-Spam & Indikator LED Merah)
+// FUNGSI PEMBANGKIT PULSA IR 38kHz PADA KY-005 (GPIO 4) & INDIKATOR LED
 // ============================================================================
+void sendIrCarrierBurst(int durationMicros) {
+  unsigned long startMicros = micros();
+  while ((micros() - startMicros) < (unsigned long)durationMicros) {
+    digitalWrite(IR_PIN, HIGH);
+    delayMicroseconds(13);
+    digitalWrite(IR_PIN, LOW);
+    delayMicroseconds(13);
+  }
+}
+
+void updateStatusLeds() {
+  // LED Hijau menyala jika AC sedang ON (Normal/Eco) atau ada orang
+  // LED Merah menyala jika AC sedang OFF (atau saat berkedip kirim sinyal IR)
+  if (acMode == "off") {
+    digitalWrite(LED_RED, HIGH);
+    digitalWrite(LED_GREEN, currentPresence ? HIGH : LOW);
+  } else {
+    digitalWrite(LED_GREEN, HIGH);
+    digitalWrite(LED_RED, LOW);
+  }
+}
+
 void triggerIRSignal(const String& actionName, bool forceSend = false) {
   if (!forceSend && (actionName == previousIRAction || actionName == "Tidak ada aksi" || actionName == "Tidak ada aksi IR")) {
     if (actionName == "Tidak ada aksi" || actionName == "Tidak ada aksi IR") {
@@ -82,13 +106,21 @@ void triggerIRSignal(const String& actionName, bool forceSend = false) {
     return;
   }
 
-  digitalWrite(LED_RED, HIGH); // Nyalakan LED Merah tanda IR menembak
   Serial.println("\n[!] MENGIRIM SINYAL IR (" + String(ROOM_NAME) + "): " + actionName + " [!]");
 
-  // Di sini tempat menaruh irsend.sendNEC(...) atau raw code sesuai merk AC kelas
-  delay(250); // Kedipan indikator transmisi IR
-  digitalWrite(LED_RED, LOW);
+  // Kedipkan LED Merah (Pin 17) + LED Board (Pin 2) sebanyak 4x sambil memancarkan pulsa IR 38kHz di Pin 4
+  for (int i = 0; i < 4; i++) {
+    digitalWrite(LED_RED, HIGH);
+    digitalWrite(LED_BOARD, HIGH);
+    // Pancarkan burst sinyal IR 38kHz pada KY-005 (GPIO 4)
+    sendIrCarrierBurst(9000);
+    delay(120);
+    digitalWrite(LED_RED, LOW);
+    digitalWrite(LED_BOARD, LOW);
+    delay(120);
+  }
 
+  updateStatusLeds();
   previousIRAction = actionName;
 }
 
@@ -128,7 +160,28 @@ void publishTelemetry() {
 }
 
 // ============================================================================
-// CALLBACK PENERIMA PERINTAH KONTROL DARI WEB APP (REMOTE OVERRIDE)
+// FUNGSI KIRIM ACK PERINTAH KE BACKEND / WEB APP VIA MQTT
+// ============================================================================
+void publishAck(const String& cmdId, bool ok) {
+  if (!mqttClient.connected()) return;
+
+  char ackPayload[240];
+  snprintf(
+    ackPayload,
+    sizeof(ackPayload),
+    "{\"cmd_id\":\"%s\",\"ok\":%s,\"ac_mode\":\"%s\",\"target_temp\":%d,\"ir_action\":\"%s\"}",
+    cmdId.c_str(),
+    ok ? "true" : "false",
+    acMode.c_str(),
+    targetTemp,
+    irAction.c_str()
+  );
+
+  mqttClient.publish(TOPIC_ACK, ackPayload, false);
+}
+
+// ============================================================================
+// CALLBACK PENERIMA PERINTAH KONTROL DARI WEB APP / BACKEND (REMOTE OVERRIDE)
 // ============================================================================
 void onMqttMessage(char* topic, byte* payload, unsigned int length) {
   String msg = "";
@@ -137,6 +190,16 @@ void onMqttMessage(char* topic, byte* payload, unsigned int length) {
   }
 
   Serial.println("\n[WEB COMMAND MASUK] Topik: " + String(topic) + " | Payload: " + msg);
+
+  // Ekstrak cmd_id jika ada untuk pengiriman konfirmasi ACK ke Backend
+  String cmdId = "cmd-esp32";
+  int cidIdx = msg.indexOf("\"cmd_id\":\"");
+  if (cidIdx >= 0) {
+    int cidEnd = msg.indexOf("\"", cidIdx + 10);
+    if (cidEnd > cidIdx + 10) {
+      cmdId = msg.substring(cidIdx + 10, cidEnd);
+    }
+  }
 
   // Parsing ringan tanpa membebani RAM ESP32
   if (msg.indexOf("\"ac_normal\"") >= 0) {
@@ -188,13 +251,27 @@ void onMqttMessage(char* topic, byte* payload, unsigned int length) {
     dashboardStatus = "Kembali ke Mode Otomatis (Sensor ESP32)";
   }
 
-  // Segera kirim pembaruan status ke Web App agar UI langsung sinkron
+  // Kirim konfirmasi ACK & pembaruan telemetri instan ke Backend dan Web App
+  publishAck(cmdId, true);
   publishTelemetry();
 }
 
 // ============================================================================
-// KONEKSI NON-BLOCKING KE BROKER MQTT
+// KONEKSI NON-BLOCKING KE WIFI & BROKER MQTT
 // ============================================================================
+void ensureWifiConnected() {
+  if (WiFi.status() == WL_CONNECTED) return;
+
+  unsigned long now = millis();
+  if (now - lastWifiRetryTime < 10000) return;
+  lastWifiRetryTime = now;
+
+  Serial.print("[WIFI] Mencoba ulang koneksi ke SSID: ");
+  Serial.println(ssid);
+  WiFi.disconnect();
+  WiFi.begin(ssid, password);
+}
+
 void ensureMqttConnected() {
   if (WiFi.status() != WL_CONNECTED) return;
   if (mqttClient.connected()) return;
@@ -225,16 +302,22 @@ void ensureMqttConnected() {
 // SETUP AWAL MIKROKONTROLER
 // ============================================================================
 void setup() {
-  // OPTIMASI TERMAL #1: Turunkan frekuensi CPU dari 240MHz ke 80MHz
-  // Memangkas konsumsi daya dan panas berlebih pada ESP32 hingga ~60%
-  setCpuFrequencyMhz(80);
-
   Serial.begin(115200);
 
   pinMode(MMWAVE_PIN, INPUT);
   pinMode(LED_GREEN, OUTPUT);
   pinMode(LED_RED, OUTPUT);
+  pinMode(LED_BOARD, OUTPUT);
   pinMode(IR_PIN, OUTPUT);
+
+  // Self-Test Lampu LED saat ESP32 pertama kali menyala (Nyalakan 1 detik agar tahu kabel LED benar)
+  digitalWrite(LED_GREEN, HIGH);
+  digitalWrite(LED_RED, HIGH);
+  digitalWrite(LED_BOARD, HIGH);
+  delay(800);
+  digitalWrite(LED_GREEN, LOW);
+  digitalWrite(LED_RED, LOW);
+  digitalWrite(LED_BOARD, LOW);
 
   dht.begin();
 
@@ -242,25 +325,29 @@ void setup() {
   Serial.println("ACOPTIMIZER IOT NODE - " + String(ROOM_NAME) + " (Slot " + String(ROOM_SLOT_ID) + ")");
   Serial.println("=================================================");
 
-  // Koneksi WiFi
+  // Koneksi WiFi (Jalankan pada clock standar dulu agar handshake WiFi cepat & stabil)
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
-  Serial.print("Menghubungkan ke WiFi");
+  Serial.print("Menghubungkan ke WiFi \"" + String(ssid) + "\"");
   int wifiAttempts = 0;
-  while (WiFi.status() != WL_CONNECTED && wifiAttempts < 25) {
+  while (WiFi.status() != WL_CONNECTED && wifiAttempts < 35) {
     delay(400);
     Serial.print(".");
     wifiAttempts++;
   }
 
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("\n[DEBUGGER ERROR] Gagal terhubung ke WiFi! Cek SSID/Password.");
+    Serial.println("\n[WIFI ERROR] Belum terhubung ke WiFi \"" + String(ssid) + "\"! Pastikan SSID & Password benar (WiFi 2.4GHz).");
   } else {
-    Serial.println("\n[DEBUGGER INFO] WiFi Terhubung! IP: " + WiFi.localIP().toString());
-    // OPTIMASI TERMAL #2: Aktifkan WiFi Modem Power Saving agar antena tidak panas
+    Serial.println("\n[WIFI INFO] WiFi Terhubung! IP: " + WiFi.localIP().toString());
+    // OPTIMASI TERMAL: Aktifkan WiFi Modem Power Saving setelah konek agar antena tetap dingin
     WiFi.setSleep(true);
     timeClient.begin();
+    timeClient.update();
   }
+
+  // OPTIMASI TERMAL: Turunkan frekuensi CPU dari 240MHz ke 160MHz/80MHz setelah radio siap
+  setCpuFrequencyMhz(80);
 
   mqttClient.setServer(mqttServer, mqttPort);
   mqttClient.setCallback(onMqttMessage);
@@ -275,8 +362,10 @@ void setup() {
 void loop() {
   unsigned long now = millis();
 
-  // 1. Jaga koneksi MQTT & dengarkan tombol kontrol dari Web App secara instan
-  if (WiFi.status() == WL_CONNECTED) {
+  // 1. Jaga koneksi WiFi & MQTT, serta dengarkan tombol kontrol dari Web App secara instan
+  if (WiFi.status() != WL_CONNECTED) {
+    ensureWifiConnected();
+  } else {
     ensureMqttConnected();
     mqttClient.loop();
     timeClient.update();
@@ -286,10 +375,8 @@ void loop() {
   bool presenceNow = (digitalRead(MMWAVE_PIN) == HIGH);
   if (presenceNow) {
     lastPresenceTime = now;
-    digitalWrite(LED_GREEN, HIGH);
-  } else {
-    digitalWrite(LED_GREEN, LOW);
   }
+  updateStatusLeds();
 
   // Jika status kehadiran baru saja berubah (orang masuk / keluar), kirim update instan ke Web!
   if (presenceNow != currentPresence) {
@@ -327,8 +414,8 @@ void loop() {
 
   // 5. Evaluasi Logika Inti AC Optimizer (Hanya dijalankan saat mode == "auto")
   int currentHour = timeClient.getHours();
-  if (currentHour == 0 && timeClient.getEpochTime() < 100000) {
-    currentHour = 10; // Fallback jam kerja jika NTP belum sinkron
+  if (timeClient.getEpochTime() < 100000) {
+    currentHour = 10; // Fallback jam kerja jika NTP belum sinkron (karena offset UTC+7 membuat epoch 0 = jam 7)
   }
 
   if (deviceMode == "auto") {
@@ -408,6 +495,13 @@ void loop() {
 
     Serial.println("-------------------------------------------------");
     Serial.print("Identitas    : "); Serial.print(ROOM_NAME); Serial.println(" (Slot " + String(ROOM_SLOT_ID) + ")");
+    if (WiFi.status() != WL_CONNECTED) {
+      Serial.println("Koneksi Web  : [!] WIFI BELUM TERHUBUNG (Cek SSID: " + String(ssid) + ")");
+    } else if (!mqttClient.connected()) {
+      Serial.println("Koneksi Web  : [!] WIFI OK, MENUNGGU BROKER MQTT...");
+    } else {
+      Serial.println("Koneksi Web  : [OK] TERHUBUNG KE WEB APP & SUPABASE (MQTT LIVE)");
+    }
     Serial.print("Mode Kendali : "); Serial.println(deviceMode == "override" ? "MANUAL OVERRIDE (WEB)" : "OTOMATIS (SENSOR)");
     Serial.print("Waktu (Jam)  : "); Serial.println(currentHour);
     Serial.print("Suhu & Lembap: "); Serial.print(currentTemp, 1); Serial.print(" C | "); Serial.print(currentHum, 0); Serial.println(" %");

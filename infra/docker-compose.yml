@@ -1,0 +1,15 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: acoptimizer-mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883" # TCP MQTT untuk ESP32 (R.601) & Backend
+      - "9001:9001" # WebSockets MQTT untuk Web App Frontend
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
+
+volumes:
+  mosquitto_data:
+

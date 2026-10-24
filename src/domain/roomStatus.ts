@@ -120,6 +120,23 @@ export function getStatusColor(
     return "#EF4444"; // Merah panas
   }
 
+  if (layer === "presence") {
+    if (status === "OCCUPIED" || status === "ANOMALY" || status === "AFTER_HOURS_OCCUPIED") {
+      return "#10B981"; // Hijau (Ada Penghuni)
+    }
+    if (status === "OFFLINE") return "#94A3B8";
+    return "#CBD5E1"; // Kosong
+  }
+
+  if (layer === "energy") {
+    if (status === "WASTE" || status === "ANOMALY") return "#EF4444"; // Boros / Anomali
+    if (status === "OCCUPIED" || status === "TRANSITION" || status === "AFTER_HOURS_OCCUPIED") {
+      return "#F59E0B"; // Beban Normal 1.2 kW
+    }
+    if (status === "ECO") return "#3B82F6"; // Hemat Eco 0.72 kW
+    return "#10B981"; // AC Mati 0 kW (Hemat 100%)
+  }
+
   switch (status) {
     case "OCCUPIED":
       return "#22C55E"; // Hijau

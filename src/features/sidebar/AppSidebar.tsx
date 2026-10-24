@@ -15,15 +15,22 @@ import { useRoomStore } from "../../stores/roomStore";
 import { useViewStore } from "../../stores/viewStore";
 
 export const AppSidebar: React.FC = React.memo(function AppSidebar() {
-  const { openModal, setLayer, layer, resetToBuilding } = useViewStore(
+  const { openModal, setAutomationsTab, setLayer, layer, resetToBuilding } = useViewStore(
     useShallow((s) => ({
       openModal: s.openModal,
+      setAutomationsTab: s.setAutomationsTab,
       setLayer: s.setLayer,
       layer: s.layer,
       resetToBuilding: s.resetToBuilding,
     }))
   );
-  const connection = useRoomStore((s) => s.connection);
+  const { connection, alerts } = useRoomStore(
+    useShallow((s) => ({
+      connection: s.connection,
+      alerts: s.alerts,
+    }))
+  );
+  const activeAlertsCount = alerts.filter((a) => !a.resolvedAt && !a.acknowledged).length;
 
   const [isHovered, setIsHovered] = useState(false);
   const sidebarRef = useRef<HTMLElement>(null);
@@ -114,6 +121,7 @@ export const AppSidebar: React.FC = React.memo(function AppSidebar() {
               badgeColor="blue"
               isExpanded={isHovered}
               onClick={() => {
+                setAutomationsTab("rules");
                 openModal("automations");
                 setIsHovered(false);
               }}
@@ -138,6 +146,7 @@ export const AppSidebar: React.FC = React.memo(function AppSidebar() {
               label="Riwayat Log"
               isExpanded={isHovered}
               onClick={() => {
+                setAutomationsTab("logs");
                 openModal("automations");
                 setIsHovered(false);
               }}
@@ -151,9 +160,14 @@ export const AppSidebar: React.FC = React.memo(function AppSidebar() {
           <NavItem
             icon={<Bell className="w-4 h-4" />}
             label="Notifikasi"
-            badge="0 Alert"
+            badge={`${activeAlertsCount} Alert`}
+            badgeColor={activeAlertsCount > 0 ? "blue" : "gray"}
             isExpanded={isHovered}
-            onClick={() => {}}
+            onClick={() => {
+              setAutomationsTab("alerts");
+              openModal("automations");
+              setIsHovered(false);
+            }}
           />
 
           {/* Pengaturan Sistem */}
